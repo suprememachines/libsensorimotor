@@ -4,7 +4,7 @@
 #include <unistd.h>
 #include <mutex>
 #include <queue>
-#include <serial/rs232.h>
+#include "serial/rs232.h"
 #include "communication_interface.hpp"
 
 namespace supreme {
@@ -18,7 +18,7 @@ class communication_controller : public communication_interface {
     const int def_device = 17; /* /dev/ttyUSB1 */
     const int alt_device = 16; /* /dev/ttyUSB0 */
 
-    // 16..21 is allowed
+    /**TODO try checking all ttyUSBx until first device responds, IDs 16..21 are allowed by RS232 lib*/
 
     int device = def_device;
 
@@ -113,7 +113,7 @@ public:
         uint8_t tmp1 = recv_queue.front(); recv_queue.pop();
         uint8_t tmp0 = recv_queue.front(); recv_queue.pop();
         recv_checksum += tmp1;
-        recv_checksum += tmp0; // TODO:
+        recv_checksum += tmp0;
         return (tmp1 << 8) + tmp0;
     }
 

@@ -16,7 +16,7 @@
 #include <cassert>
 #include <algorithm>
 
-#include <common/modules.h>
+#include "common/modules.h"
 #include "communication_interface.hpp"
 
 namespace supreme {
