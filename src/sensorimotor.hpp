@@ -1,3 +1,15 @@
+/*
+
+ +---------------------------------+
+ | Supreme Machines                |
+ | Sensorimotor C++ Library        |
+ | Matthias Kubisch                |
+ | kubisch@informatik.hu-berlin.de |
+ | October 2018                    |
+ +---------------------------------+
+
+*/
+
 #ifndef SUPREME_SENSORIMOTOR_HPP
 #define SUPREME_SENSORIMOTOR_HPP
 
@@ -9,18 +21,6 @@
 
 namespace supreme {
 
-/*
-
- +------------------------------+
- | Supreme Sensorimotor Library |
- +------------------------------+-------------+
- | TODO: Description                          |
- |
- |
- |
- +--------------------------------------------+
-
-*/
 
 inline double pos(double value) { return std::max(.0, value); }
 inline double neg(double value) { return std::min(.0, value); }
@@ -33,7 +33,7 @@ inline double uint_to_sc(uint16_t word) { return (word - 512) / 512.0; }
 class sensorimotor
 {
 public:
-    /**TODO convert all items to double !! */
+
     struct interface_data {
         double output_voltage  = 0.0;
         double position        = 0.0;
@@ -141,7 +141,7 @@ public:
     Statistics_t execute_cycle(void) {
         if (not do_request) return Statistics_t();
 
-        assert(send_command()); // TODO: handle connection lost
+        assert(send_command()); /** TODO: handle connection lost better */
         return receive_response();
     }
 
@@ -154,8 +154,6 @@ public:
     Controller_t get_controller_type(void) const { return controller; }
 
     void toggle_request(void) { do_request = not do_request; }
-    void toggle_led(void) { assert(false); /*TODO implement*/ }
-
 
     void set_proportional(double p) { Kp = p; }
     void set_limits(double lo, double hi) { limit_hi = hi; limit_lo = lo; }
@@ -168,9 +166,9 @@ public:
 
     void set_phi_disable(double phi) { phi_disable = phi; }
 
-    void execute_controller(void) {
-
-
+    /**TODO this method must be refactored */
+    void execute_controller(void)
+    {
         double phi = data.position;
 
         if (std::abs(phi) >= phi_disable)
@@ -191,7 +189,7 @@ public:
 
 
         const double mode = clip(target_csl_mode);
-        const double gi = posneg(mode, 2.4, 16.0); //TODO on gi change, reset z to correct value
+        const double gi = posneg(mode, 2.4, 16.0); /** TODO on gi change, reset z to correct value */
         const double gf = target_csl_fb * pos(mode);
 
         if (controller == Controller_t::csl) {
@@ -211,13 +209,6 @@ private:
 
     /** TODO: enqueue sync bytes and checksum could be done by someone else since each package is affected */
 
-    void enqueue_command_toggle_led(void) {
-        com.enqueue_sync_bytes(0xFF);
-        com.enqueue_byte(0xD0);
-        com.enqueue_byte(motor_id);
-        com.enqueue_checksum();
-    }
-
     void enqueue_command_data_request() {
         com.enqueue_sync_bytes(0xFF);
         com.enqueue_byte(0xC0);
@@ -233,7 +224,7 @@ private:
     }
 
     void enqueue_command_set_voltage(double voltage) {
-        voltage = clip(voltage, 0.5); /** pwms higher than 128 currently ignored**/
+        voltage = clip(voltage, 0.5); /** Note: PWMs higher than 128 currently ignored**/
         voltage *= direction; // correct direction
         com.enqueue_sync_bytes(0xFF);
         if (voltage >= 0.0) {
@@ -370,6 +361,6 @@ public:
 };
 
 
-} /* namespace sensorimotor */
+} /* namespace supreme */
 
 #endif /* SUPREME_SENSORIMOTOR_HPP */

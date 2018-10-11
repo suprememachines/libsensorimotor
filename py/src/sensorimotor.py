@@ -49,7 +49,7 @@ class Sensorimotor(object):
 
         # creating thread
         self.stop_t = threading.Event()
-        self.loop_t = threading.Thread(target=self.execute_cycle)
+        self.loop_t = threading.Thread(target=self.__execute_cycle)
 
         self.target_position = [0.0] * self.number_of_motors
         self.motor_data = [0.0] * self.number_of_motors #TODO currently only positions
@@ -85,7 +85,8 @@ class Sensorimotor(object):
     def get_position(self):
         return self.motor_data
 
-    def execute_cycle(self):
+
+    def __execute_cycle(self):
         while(not self.stop_t.is_set()):
             n = lib.sensorimotor_execute_cycle(self.obj)
             self.__get_motor_data()

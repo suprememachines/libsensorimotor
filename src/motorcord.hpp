@@ -6,17 +6,9 @@
 
 namespace supreme {
 
-/** TODOs:
-    + make this class thread-safe
-    + remove print statements -> move to visualization class
-    + remove everything system-specific
-    + replace std::vector by static vector
-*/
-
 class motorcord {
 
     const uint8_t max_boards = 128;
-    uint8_t selected = 0;
 
     std::size_t cyclecounter = 0;
 
@@ -53,18 +45,18 @@ public:
     void reset_statistics(void) { for (auto& m : motors) m.reset_statistics(); }
     void rescan(void) { rescan_for_motors = true; }
 
-    //void set_direction(std::size_t index, int16_t dir) { motors.at(index).set_direction(dir); }
 
     void execute_cycle()
     {
         if (rescan_for_motors) scan_for_motors();
+
         if (num_active_motors == 0) {
             com.sleep_s(1);
             rescan_for_motors = true;
         }
 
         if (verbose)
-            printf("[%u] %02lu | ", selected, cyclecounter % 100);
+            printf("%02lu | ", cyclecounter % 100);
 
         ++cyclecounter;
 
@@ -81,7 +73,6 @@ public:
             }
         }
 
-        //printf("| e=%u, t=%2uu(%2u)\n", errors, (unsigned) round(avg_resp_time_us*byte_delay_us), max_resp_time_us);
         if (verbose)
             printf("| e=%u\n", errors);
 
@@ -89,13 +80,6 @@ public:
             m.execute_controller();
     }
 
-    void toggle_led(std::size_t index) {
-        if (index < motors.size())
-            motors.at(index).toggle_led();
-        else wrn_msg("No such board to toggle led.");
-    }
-
-    void toggle_request   () { motors.at(selected).toggle_request(); }
 
     unsigned scan_for_motors() {
         rescan_for_motors = false;
@@ -111,16 +95,6 @@ public:
         return num_active_motors;
     }
 
-    void set_target_position(double p) { motors.at(selected).set_target_position(p); }
-    void set_target_voltage (double v) { motors.at(selected).set_target_voltage (v); }
-
-    void set_position_ctrl() { motors.at(selected).set_controller_type(sensorimotor::Controller_t::position); }
-    void set_csl_ctrl()      { motors.at(selected).set_controller_type(sensorimotor::Controller_t::csl     ); }
-    void set_voltage_ctrl()  { motors.at(selected).set_controller_type(sensorimotor::Controller_t::voltage ); }
-
-    uint8_t get_id() const { return selected; }
-
-    void set_id(uint8_t id) { if (id < motors.size()) selected = id; }
 };
 
 } /* namespace supreme */
