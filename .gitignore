@@ -1,0 +1,6 @@
+obj/*
+*.layout
+*.depend
+*.pyc
+*.o
+
