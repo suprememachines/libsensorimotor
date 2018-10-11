@@ -18,33 +18,30 @@
 					<Add option="-O2" />
 					<Add option="-Wall" />
 					<Add option="-fPIC" />
-					<Add directory="../framework/src" />
 				</Compiler>
 				<Linker>
 					<Add option="-s" />
 				</Linker>
 			</Target>
 		</Build>
-		<Compiler>
-			<Add directory="../framework/src" />
-			<Add directory="../simloidTCP/src" />
-		</Compiler>
 		<Linker>
 			<Add option="-Wl,-soname,libsensorimotor.so" />
 		</Linker>
-		<Unit filename="../framework/src/common/log_messages.cpp" />
-		<Unit filename="../framework/src/common/log_messages.h" />
-		<Unit filename="../framework/src/common/modules.cpp" />
-		<Unit filename="../framework/src/common/modules.h" />
-		<Unit filename="../framework/src/serial/rs232.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="../framework/src/serial/rs232.h" />
+		<Unit filename="src/common/log_messages.cpp" />
+		<Unit filename="src/common/log_messages.h" />
+		<Unit filename="src/common/modules.cpp" />
+		<Unit filename="src/common/modules.h" />
 		<Unit filename="src/communication_ctrl.hpp" />
 		<Unit filename="src/communication_interface.hpp" />
 		<Unit filename="src/motorcord.hpp" />
 		<Unit filename="src/motorhandler.cpp" />
 		<Unit filename="src/sensorimotor.hpp" />
+		<Unit filename="src/serial/LICENSE" />
+		<Unit filename="src/serial/doc.txt" />
+		<Unit filename="src/serial/rs232.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/serial/rs232.h" />
 		<Extensions>
 			<envvars />
 			<code_completion />
