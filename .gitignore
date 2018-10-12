@@ -1,6 +1,10 @@
-obj/*
+build/*
+bin/*
 *.layout
 *.depend
 *.pyc
 *.o
+*.os
+*.so
+.sconsign.dblite
 

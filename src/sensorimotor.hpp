@@ -120,10 +120,10 @@ public:
     const interface_data& get_data(void) const { return data; }
 
     /* returns the motors_id */
-    const uint8_t get_id(void) const { return motor_id; }
+    uint8_t get_id(void) const { return motor_id; }
 
     /* returns the last known response to ping status */
-    const bool is_active(void) const { return is_responding; }
+    bool is_active(void) const { return is_responding; }
 
     /* disables the output stage of the motor by sending data requests only */
     void disable(void) { controller = Controller_t::none; }

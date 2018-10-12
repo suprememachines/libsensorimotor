@@ -14,7 +14,7 @@
 
 class Motorhandler {
 public:
-    Motorhandler(unsigned number_of_motors, double update_rate_Hz, bool verbose)
+    Motorhandler(unsigned number_of_motors, double /*update_rate_Hz*/, bool verbose)
     : motors(std::min(128u,number_of_motors), verbose)
     {
         sts_msg("Done starting motor cord.");

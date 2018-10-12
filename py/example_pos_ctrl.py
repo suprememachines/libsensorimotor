@@ -22,7 +22,7 @@ def main():
         while(True):
             # USER CODE HERE BEGIN
          
-            motors.set_position([0.2, 0.2, 0.0])
+            motors.set_position([0.2, 0.2, 0.2])
             print_position(motors.get_position())
             sleep(1.0)
             motors.set_position([0.0, 0.0, 0.00])

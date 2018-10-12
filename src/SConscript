@@ -1,0 +1,21 @@
+""" 
+ +----------------------------------+ 
+ | Supreme Machines                 |
+ | Sensorimotor Library             |
+ | Build Script                     |
+ | Matthias Kubisch                 |
+ | kubisch@informatik.hu-berlin.de  |
+ | October 2018                     |
+ +----------------------------------+
+
+"""
+
+src_files = [ 'common/log_messages.cpp'
+            , 'common/modules.cpp'
+            , 'serial/rs232.c'
+            , 'motorhandler.cpp' ]
+
+flags = ['-O2', '-Wall', '-Wextra']
+
+
+SharedLibrary('../bin/libsensorimotor', source = src_files, CFLAGS=flags, CPPFLAGS=flags)
