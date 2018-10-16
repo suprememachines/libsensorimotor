@@ -16,6 +16,8 @@ src_files = [ 'common/log_messages.cpp'
             , 'motorhandler.cpp' ]
 
 flags = ['-O2', '-Wall', '-Wextra']
+cppflags = ['-std=c++11']
 
 
-SharedLibrary('../bin/libsensorimotor', source = src_files, CFLAGS=flags, CPPFLAGS=flags)
+
+SharedLibrary('../bin/libsensorimotor', source = src_files, CFLAGS=flags, CPPFLAGS=flags, CXXFLAGS=cppflags)
