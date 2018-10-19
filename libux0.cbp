@@ -9,13 +9,14 @@
 			<Target title="Release">
 				<Option output="bin/sensorimotor" prefix_auto="1" extension_auto="1" />
 				<Option working_dir="bin/" />
-				<Option object_output="obj/" />
+				<Option object_output="build/" />
 				<Option type="3" />
 				<Option compiler="gcc" />
 				<Option createDefFile="1" />
 				<Option createStaticLib="1" />
 				<Compiler>
 					<Add option="-O2" />
+					<Add option="-Wextra" />
 					<Add option="-Wall" />
 					<Add option="-fPIC" />
 				</Compiler>
@@ -33,6 +34,10 @@
 		<Unit filename="src/common/modules.h" />
 		<Unit filename="src/communication_ctrl.hpp" />
 		<Unit filename="src/communication_interface.hpp" />
+		<Unit filename="src/controller/csl_control.hpp" />
+		<Unit filename="src/controller/impulse_ctrl.hpp" />
+		<Unit filename="src/controller/pid_control.hpp" />
+		<Unit filename="src/interface_data.hpp" />
 		<Unit filename="src/motorcord.hpp" />
 		<Unit filename="src/motorhandler.cpp" />
 		<Unit filename="src/sensorimotor.hpp" />

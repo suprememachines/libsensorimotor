@@ -37,6 +37,24 @@ public:
         }
     }
 
+    void set_voltage_limit(double* data, unsigned N)
+    {
+        unsigned M = std::min((unsigned)motors.size(), N);
+        for (unsigned i = 0; i < M; ++i)
+            motors[i].set_voltage_limit(data[i]);
+    }
+
+    void apply_impulse(double* data, unsigned N)
+    {
+        unsigned M = std::min((unsigned)motors.size(), N);
+        for (unsigned i = 0; i < M; ++i)
+        {
+            motors[i].set_controller_type(supreme::sensorimotor::Controller_t::impulse);
+            motors[i].set_disable_limits(-1.0,+1.0);
+            motors[i].apply_impulse(data[i], 5/**TODO duration*/);
+        }
+    }
+
     void get_motor_data(double* data, unsigned N)
     {
         unsigned M = std::min((unsigned)motors.size(), N);
@@ -89,6 +107,26 @@ extern "C" {
             return 0;
         } else {
             wrn_msg("Motor cord already stopped (set_position).");
+            return -1;
+        }
+    }
+
+    int sensorimotor_set_voltage_limit(Motorhandler* sensorimotor, double* data, unsigned N) {
+        if (sensorimotor != NULL) {
+            sensorimotor->set_voltage_limit(data, N);
+            return 0;
+        } else {
+            wrn_msg("Motor cord already stopped (set_voltage_limit).");
+            return -1;
+        }
+    }
+
+    int sensorimotor_apply_impulse(Motorhandler* sensorimotor, double* data, unsigned N) {
+        if (sensorimotor != NULL) {
+            sensorimotor->apply_impulse(data, N);
+            return 0;
+        } else {
+            wrn_msg("Motor cord already stopped (apply_impulse).");
             return -1;
         }
     }

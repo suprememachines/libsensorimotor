@@ -18,58 +18,49 @@
 
 #include "common/modules.h"
 #include "communication_interface.hpp"
+#include "interface_data.hpp"
+
+#include "controller/pid_control.hpp"
+#include "controller/csl_control.hpp"
+#include "controller/impulse_ctrl.hpp"
 
 namespace supreme {
-
-
-inline double pos(double value) { return std::max(.0, value); }
-inline double neg(double value) { return std::min(.0, value); }
-
-
-inline double posneg(double value, double p, double n) { return p*pos(value) + n*neg(value); }
 
 inline double uint_to_sc(uint16_t word) { return (word - 512) / 512.0; }
 
 class sensorimotor
 {
-public:
-
-    struct interface_data {
-        double output_voltage  = 0.0;
-        double position        = 0.0;
-        double current         = 0.0;
-        double voltage_backemf = 0.0;
-        double voltage_supply  = 0.0;
-        double temperature     = 0.0;
-    };
-
-private:
     static const unsigned max_response_time_us = 1000;
     static const unsigned byte_delay_us = 1;
     static const unsigned ping_timeout_us = 50;
 
     constexpr static const double voltage_scale = 0.012713472; /* Vmax = 13V -> 1023 */
     constexpr static const double current_scale = 0.003225806; /* Imax = 3A3 -> 1023 */
+    constexpr static const double velocity_amp  = 100.0 /*dt ^-1*/ / 4.0; /* max. velocity */
+
 
     const uint8_t             motor_id;
     communication_interface&  com;
     bool                      do_request = true;
     bool                      is_responding = false;
+    bool                      voltage_limit_changed = false;
 
     int16_t                   direction = 1;
+    double                    scalefactor = 1.0;
 
     interface_data data;
 
-    double                    err_int = 0.0;
-    double                    z = 0.0;
-    double                    target_position = .0;
+
     double                    target_voltage  = .0;
-    double                    target_csl_mode = .0;
-    double                    target_csl_fb   = 1.03;
-    double                    limit_lo        = -0.8;
-    double                    limit_hi        = +0.8;
-    double                    Kp              = 0.8;
-    double                    phi_disable     = 0.90;
+    double                    voltage_limit   = .0;
+    double                    lim_disable_hi  = +0.90;
+    double                    lim_disable_lo  = -0.90;
+
+    double                    last_position   = 0.0; /**TODO initialize with first position value */
+
+    pid_control     pos_ctrl;
+    csl_control     csl_ctrl;
+    impulse_control imp_ctrl;
 
     enum command_state_t {
         sync0,
@@ -107,12 +98,16 @@ public:
         voltage  = 1,
         position = 2,
         csl      = 3,
+        impulse  = 4,
     } controller = none;
 
     sensorimotor(uint8_t id, communication_interface& com)
     : motor_id(id)
     , com(com)
     , data()
+    , pos_ctrl(id)
+    , csl_ctrl(id)
+    , imp_ctrl(id)
     , statistics()
     {}
 
@@ -145,7 +140,6 @@ public:
         return receive_response();
     }
 
-
     const Statistics_t& get_stats(void) const { return statistics; }
     void reset_statistics(void) { statistics = Statistics_t(); }
 
@@ -155,54 +149,44 @@ public:
 
     void toggle_request(void) { do_request = not do_request; }
 
-    void set_proportional(double p) { Kp = p; }
-    void set_limits(double lo, double hi) { limit_hi = hi; limit_lo = lo; }
-    void set_target_csl_mode(double m) { target_csl_mode = m; }
-    void set_target_csl_fb  (double f) { target_csl_fb   = f; }
-    void set_target_position(double p) { target_position = p; }
+    void set_proportional(double p) { pos_ctrl.Kp = p; }
+    void set_limits(double lo, double hi) { csl_ctrl.limit_hi = hi; csl_ctrl.limit_lo = lo; }
+    void set_target_csl_mode(double m) { csl_ctrl.target_csl_mode = m; }
+    void set_target_csl_fb  (double f) { csl_ctrl.target_csl_fb   = f; }
+    void set_target_position(double p) { pos_ctrl.target_value = p; }
     void set_target_voltage (double v) { target_voltage  = v; data.output_voltage = v; }
 
+    void set_voltage_limit(double limit) { voltage_limit = clip(limit, 0., 1.); voltage_limit_changed = true; }
+
+    void apply_impulse(double value, unsigned duration) { imp_ctrl.value = value; imp_ctrl.duration = duration; }
+
     void set_direction(int16_t dir) { direction = dir; }
+    void set_scalefactor(double scf) { scalefactor = scf; }
 
-    void set_phi_disable(double phi) { phi_disable = phi; }
+    void set_disable_limits(double lo, double hi) { lim_disable_lo = lo; lim_disable_hi = hi; }
 
-    /**TODO this method must be refactored */
     void execute_controller(void)
     {
-        double phi = data.position;
 
-        if (std::abs(phi) >= phi_disable)
+        if (not in_range(data.position, lim_disable_lo, lim_disable_hi))
             disable();
 
-        if (controller == Controller_t::position)
+        double u = 0.0;
+        switch(controller)
         {
-            const double pos = data.position;
-            double err = target_position - pos;
+        case Controller_t::position: u = pos_ctrl.step(data.position); break;
+        case Controller_t::csl     : u = csl_ctrl.step(data.position); break;
+        case Controller_t::impulse : u = imp_ctrl.step();              break;
+        case Controller_t::voltage : u = clip(target_voltage);         break;
+        case Controller_t::none:
+        default:
+            pos_ctrl.reset();
+            csl_ctrl.reset(data.position);
+            imp_ctrl.reset();
+            break;
 
-            err_int += err;
-            err_int = clip(err_int);
-
-            set_target_voltage(Kp*err);
-        } else {
-            err_int = .0;
         }
-
-
-        const double mode = clip(target_csl_mode);
-        const double gi = posneg(mode, 2.4, 16.0); /** TODO on gi change, reset z to correct value */
-        const double gf = target_csl_fb * pos(mode);
-
-        if (controller == Controller_t::csl) {
-            if (phi > limit_hi) z = std::min(z, gi * phi);
-            if (phi < limit_lo) z = std::max(z, gi * phi);
-
-            double u = clip(-gi * phi + z);
-            z = gi * phi + gf * u;
-
-            set_target_voltage(0.75*u);
-        } else {
-            z = gi * phi; /* set initial conditions */
-        }
+        set_target_voltage(u);
     }
 
 private:
@@ -224,7 +208,6 @@ private:
     }
 
     void enqueue_command_set_voltage(double voltage) {
-        voltage = clip(voltage, 0.5); /** Note: PWMs higher than 128 currently ignored**/
         voltage *= direction; // correct direction
         com.enqueue_sync_bytes(0xFF);
         if (voltage >= 0.0) {
@@ -238,7 +221,21 @@ private:
         com.enqueue_checksum();
     }
 
+    void enqueue_command_set_voltage_limit(void) {
+        if (not voltage_limit_changed) return;
+        if (voltage_limit > 0.5)
+            wrn_msg("Changing voltage limit to %1.2f for motor %u", voltage_limit, motor_id);
+        com.enqueue_sync_bytes(0xFF);
+        com.enqueue_byte(0xA0);
+        com.enqueue_byte(motor_id);
+        uint8_t lim_pwm = static_cast<uint8_t>(round(std::abs(voltage_limit) * 255));
+        com.enqueue_byte(lim_pwm);
+        com.enqueue_checksum();
+        voltage_limit_changed = false;
+    }
+
     std::size_t send_command(void) {
+        enqueue_command_set_voltage_limit();
         if (controller != Controller_t::none)
             enqueue_command_set_voltage(target_voltage);
         else
@@ -300,7 +297,9 @@ private:
                         com.get_byte(); /* eat command byte */
                         uint8_t mid = com.get_byte();
                         if (mid == motor_id) {
-                            data.position        = uint_to_sc(com.get_word()) * direction;
+                            data.position        = uint_to_sc(com.get_word()) * direction * scalefactor;
+                            data.velocity        = clip((data.position - last_position) * velocity_amp);
+                            last_position        = data.position;
                             data.current         = com.get_word() * current_scale;
                             data.voltage_backemf = uint_to_sc(com.get_word());
                             data.voltage_supply  = com.get_word() * voltage_scale;
