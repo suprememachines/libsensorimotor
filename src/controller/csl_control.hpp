@@ -27,27 +27,29 @@ public:
 
     csl_control(uint8_t id) : id(id) { }
 
+    /* TODO make value gi configurable */
     void update_mode() {
         const double mode = clip(target_csl_mode);
-        gi = posneg(mode, 2.4, 16.0); /** TODO on gi change, reset z to correct value */
+        gi = posneg(mode, 4.0, 16.0); /** TODO on gi change, reset z to correct value */
         gf = target_csl_fb * pos(mode);
     }
 
-    double step(double phi /*current position*/)
+    double step(double /*current position=*/p)
     {
         update_mode();
 
-        if (phi > limit_hi) z = std::min(z, gi * phi);
-        if (phi < limit_lo) z = std::max(z, gi * phi);
+        if (p > limit_hi) z = std::min(z, gi * p);
+        if (p < limit_lo) z = std::max(z, gi * p);
 
-        double u = clip(-gi * phi + z);
-        z = gi * phi + gf * u;
+        double u = clip(-gi * p + z, .5);
+        z = gi * p + gf * u;
 
-        return 0.75*u;
+        return u;
     }
 
-    void reset(double phi) {
-        z = gi * phi; /* set initial conditions */
+    void reset(double p) {
+        update_mode();
+        z = gi * p; /* set initial conditions */
     }
 };
 

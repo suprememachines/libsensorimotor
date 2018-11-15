@@ -11,6 +11,7 @@ namespace supreme {
         double voltage_backemf;
         double voltage_supply;
         double temperature;
+        struct Acceleration { double x,y,z; } acceleration;
     };
 
 }

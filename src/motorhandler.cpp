@@ -50,7 +50,7 @@ public:
         for (unsigned i = 0; i < M; ++i)
         {
             motors[i].set_controller_type(supreme::sensorimotor::Controller_t::impulse);
-            motors[i].set_disable_limits(-1.0,+1.0);
+            motors[i].set_disable_position_limits(-1.0,+1.0);
             motors[i].apply_impulse(data[i], 5/**TODO duration*/);
         }
     }

@@ -32,10 +32,12 @@ public:
 
     ~motorcord() {
         sts_msg("Disabling motors");
-        for (auto &m : motors) m.disable();
+        disable_all();
         execute_cycle();
         sts_msg("All motors disabled.");
     }
+
+    void disable_all(void) { for (auto &m : motors) m.disable(); }
 
           sensorimotor& operator[] (std::size_t index)       { return motors.at(index); }
     const sensorimotor& operator[] (std::size_t index) const { return motors.at(index); }

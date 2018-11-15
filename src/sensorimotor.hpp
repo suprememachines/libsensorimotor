@@ -5,7 +5,7 @@
  | Sensorimotor C++ Library        |
  | Matthias Kubisch                |
  | kubisch@informatik.hu-berlin.de |
- | October 2018                    |
+ | November 2018                   |
  +---------------------------------+
 
 */
@@ -24,9 +24,20 @@
 #include "controller/csl_control.hpp"
 #include "controller/impulse_ctrl.hpp"
 
+/** TODO:
+
+    + make the acceleration sensor mapping configurable
+    + count timeouts and display
+    + check communication reliability before driving motors
+    + adjust timeout to actual max response time
+
+*/
+
+
 namespace supreme {
 
-inline double uint_to_sc(uint16_t word) { return (word - 512) / 512.0; }
+inline double uint16_to_sc(uint16_t word) { return (word - 32768) / 32768.0; }
+inline double  int16_to_sc(uint16_t word) { return (int16_t) word / 32768.0; }
 
 class sensorimotor
 {
@@ -36,27 +47,24 @@ class sensorimotor
 
     constexpr static const double voltage_scale = 0.012713472; /* Vmax = 13V -> 1023 */
     constexpr static const double current_scale = 0.003225806; /* Imax = 3A3 -> 1023 */
-    constexpr static const double velocity_amp  = 100.0 /*dt ^-1*/ / 4.0; /* max. velocity */
-
 
     const uint8_t             motor_id;
     communication_interface&  com;
     bool                      do_request = true;
     bool                      is_responding = false;
     bool                      voltage_limit_changed = false;
+    bool                      read_external_sensor = false;
 
     int16_t                   direction = 1;
     double                    scalefactor = 1.0;
+    double                    offset = 0.0;
 
     interface_data data;
-
 
     double                    target_voltage  = .0;
     double                    voltage_limit   = .0;
     double                    lim_disable_hi  = +0.90;
     double                    lim_disable_lo  = -0.90;
-
-    double                    last_position   = 0.0; /**TODO initialize with first position value */
 
     pid_control     pos_ctrl;
     csl_control     csl_ctrl;
@@ -136,8 +144,17 @@ public:
     Statistics_t execute_cycle(void) {
         if (not do_request) return Statistics_t();
 
-        assert(send_command()); /** TODO: handle connection lost better */
-        return receive_response();
+        assert(send_motor_command()); /** TODO: handle connection lost better */
+        receive_response();
+
+        if (read_external_sensor) { /**TODO make sep. method*/
+            enqueue_command_external_sensor_request();
+            com.read_msg();
+            com.send_msg();
+            receive_response(/*ping_timeout_us*/);
+        }
+
+        return statistics;
     }
 
     const Statistics_t& get_stats(void) const { return statistics; }
@@ -150,11 +167,11 @@ public:
     void toggle_request(void) { do_request = not do_request; }
 
     void set_proportional(double p) { pos_ctrl.Kp = p; }
-    void set_limits(double lo, double hi) { csl_ctrl.limit_hi = hi; csl_ctrl.limit_lo = lo; }
+    void set_csl_limits(double lo, double hi) { csl_ctrl.limit_hi = hi; csl_ctrl.limit_lo = lo; }
     void set_target_csl_mode(double m) { csl_ctrl.target_csl_mode = m; }
     void set_target_csl_fb  (double f) { csl_ctrl.target_csl_fb   = f; }
     void set_target_position(double p) { pos_ctrl.target_value = p; }
-    void set_target_voltage (double v) { target_voltage  = v; data.output_voltage = v; }
+    void set_target_voltage (double v) { target_voltage = clip(v, voltage_limit); }
 
     void set_voltage_limit(double limit) { voltage_limit = clip(limit, 0., 1.); voltage_limit_changed = true; }
 
@@ -162,8 +179,11 @@ public:
 
     void set_direction(int16_t dir) { direction = dir; }
     void set_scalefactor(double scf) { scalefactor = scf; }
+    void set_offset(double o) { offset = o; }
 
-    void set_disable_limits(double lo, double hi) { lim_disable_lo = lo; lim_disable_hi = hi; }
+    void set_disable_position_limits(double lo, double hi) { lim_disable_lo = lo; lim_disable_hi = hi; }
+
+    void set_ext_sensor_readout(bool enable) { read_external_sensor = enable; }
 
     void execute_controller(void)
     {
@@ -171,22 +191,9 @@ public:
         if (not in_range(data.position, lim_disable_lo, lim_disable_hi))
             disable();
 
-        double u = 0.0;
-        switch(controller)
-        {
-        case Controller_t::position: u = pos_ctrl.step(data.position); break;
-        case Controller_t::csl     : u = csl_ctrl.step(data.position); break;
-        case Controller_t::impulse : u = imp_ctrl.step();              break;
-        case Controller_t::voltage : u = clip(target_voltage);         break;
-        case Controller_t::none:
-        default:
-            pos_ctrl.reset();
-            csl_ctrl.reset(data.position);
-            imp_ctrl.reset();
-            break;
-
-        }
-        set_target_voltage(u);
+        if (controller == Controller_t::position) set_target_voltage( pos_ctrl.step(data.position) ); else pos_ctrl.reset();
+        if (controller == Controller_t::csl     ) set_target_voltage( csl_ctrl.step(data.position) ); else csl_ctrl.reset(data.position);
+        if (controller == Controller_t::impulse ) set_target_voltage( imp_ctrl.step()              ); else imp_ctrl.reset();
     }
 
 private:
@@ -208,6 +215,7 @@ private:
     }
 
     void enqueue_command_set_voltage(double voltage) {
+        data.output_voltage = voltage;
         voltage *= direction; // correct direction
         com.enqueue_sync_bytes(0xFF);
         if (voltage >= 0.0) {
@@ -234,7 +242,15 @@ private:
         voltage_limit_changed = false;
     }
 
-    std::size_t send_command(void) {
+    void enqueue_command_external_sensor_request() {
+        com.enqueue_sync_bytes(0xFF);
+        com.enqueue_byte(0x40);
+        com.enqueue_byte(motor_id);
+        com.enqueue_byte(/*sensor_id=*/1);
+        com.enqueue_checksum();
+    }
+
+    std::size_t send_motor_command(void) {
         enqueue_command_set_voltage_limit();
         if (controller != Controller_t::none)
             enqueue_command_set_voltage(target_voltage);
@@ -244,7 +260,7 @@ private:
         return com.send_msg();
     }
 
-    Statistics_t receive_response(unsigned timeout_us = max_response_time_us)
+    void receive_response(unsigned timeout_us = max_response_time_us)
     {
         /* wait for data until timeout */
         syncstate = sync0;
@@ -254,7 +270,6 @@ private:
         } while(++t_us < timeout_us and is_pending() and com.wait_us(byte_delay_us));
 
         statistics.update(t_us, t_us >= timeout_us, !is_data_valid());
-        return statistics;
     }
 
     /* return code true means continue processing, false: wait for next byte */
@@ -292,21 +307,21 @@ private:
                 uint8_t cmd = com.front();
                 switch(cmd)
                 {
-                case 0x80: /* state data */
+                case 0x80: /* state data response */
                     if (com.size() > 12) { // cmd + id + 2pos + 2cur + 2uba + 2usu +2tmp + chk = 13
                         com.get_byte(); /* eat command byte */
                         uint8_t mid = com.get_byte();
                         if (mid == motor_id) {
-                            data.position        = uint_to_sc(com.get_word()) * direction * scalefactor;
-                            data.velocity        = clip((data.position - last_position) * velocity_amp);
-                            last_position        = data.position;
+                            data.position        = uint16_to_sc(com.get_word()) * direction * scalefactor + offset;
                             data.current         = com.get_word() * current_scale;
-                            data.voltage_backemf = uint_to_sc(com.get_word());
+                            data.velocity        = int16_to_sc(com.get_word()) * direction * scalefactor;
                             data.voltage_supply  = com.get_word() * voltage_scale;
                             data.temperature     = static_cast<int16_t>(com.get_word()) / 100.0;
+                            /**TODO implement voltage_backemf */
                             com.get_byte(); /* eat checksum */
                         }
                         syncstate = (motor_id == mid and com.is_checksum_ok()) ? completed : invalid;
+                        is_responding = (syncstate == completed);
                         return true;
                     }
                     return false;
@@ -322,6 +337,22 @@ private:
                     }
                     return false;
 
+                case 0x41: /* external sensor response */
+                    if (com.size() > 8) { // cmd + id + x(2), y(2), z(2) + chk = 9
+                        com.get_byte(); /* eat command byte */
+                        uint8_t mid = com.get_byte();
+                        if (mid == motor_id) {
+                            data.acceleration.x = ( static_cast<int16_t>(com.get_word()) -  4 ) / 2048.0; //TODO mapping!
+                            data.acceleration.y = ( static_cast<int16_t>(com.get_word()) +  4 ) / 2048.0;
+                            data.acceleration.z = ( static_cast<int16_t>(com.get_word()) - 35 ) / 2048.0;
+                            com.get_byte(); /* eat checksum */
+                        }
+
+                        syncstate = (motor_id == mid and com.is_checksum_ok()) ? completed : invalid;
+                        is_responding = (syncstate == completed);
+                        return true;
+                    }
+                    return false;
                 default:
                     /* received unknown command byte */
                     syncstate = invalid;
