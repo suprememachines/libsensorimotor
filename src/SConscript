@@ -15,9 +15,12 @@ src_files = [ 'common/log_messages.cpp'
             , 'serial/rs232.c'
             , 'motorhandler.cpp' ]
 
-flags = ['-O2', '-Wall', '-Wextra']
-cppflags = ['-std=c++11']
+# common flags
+cppflags = ['-O2', '-Wall', '-Wextra']
+
+# c++ only flags
+cxxflags = ['-std=c++11']
 
 
 
-SharedLibrary('../bin/libsensorimotor', source = src_files, CFLAGS=flags, CPPFLAGS=flags, CXXFLAGS=cppflags)
+SharedLibrary('../bin/libsensorimotor', source = src_files, CPPFLAGS=cppflags, CXXFLAGS=cxxflags)
