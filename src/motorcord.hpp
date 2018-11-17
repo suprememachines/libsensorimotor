@@ -63,9 +63,11 @@ public:
         ++cyclecounter;
 
         unsigned errors = 0;
+        unsigned timeouts = 0;
         for (auto& m : motors) if (m.is_active()) {
-            auto stats = m.execute_cycle();
+            auto const& stats = m.execute_cycle();
             errors += stats.errors;
+            timeouts += stats.timeouts;
 
             if (verbose) {
                 if (!stats.faulted)
@@ -76,7 +78,7 @@ public:
         }
 
         if (verbose)
-            printf("| e=%u\n", errors);
+            printf("| e=%u t=%u\n", errors, timeouts);
 
         for (auto& m : motors) if (m.is_active())
             m.execute_controller();

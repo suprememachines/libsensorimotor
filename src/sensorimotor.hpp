@@ -1,14 +1,10 @@
-/*
-
- +---------------------------------+
+/*---------------------------------+
  | Supreme Machines                |
  | Sensorimotor C++ Library        |
  | Matthias Kubisch                |
  | kubisch@informatik.hu-berlin.de |
  | November 2018                   |
- +---------------------------------+
-
-*/
+ +---------------------------------*/
 
 #ifndef SUPREME_SENSORIMOTOR_HPP
 #define SUPREME_SENSORIMOTOR_HPP
@@ -41,6 +37,30 @@ inline double  int16_to_sc(uint16_t word) { return (int16_t) word / 32768.0; }
 
 class sensorimotor
 {
+public:
+    /* statistics */
+    struct Statistics_t {
+        unsigned errors = 0;
+        unsigned timeouts = 0;
+        unsigned response_time_us = 0;
+        float    avg_resp_time_us = 0.0;
+        unsigned max_resp_time_us = 0;
+
+        bool faulted = false;
+
+        void update(unsigned time_us, bool timeout, bool invalid) {
+            if (invalid) ++errors;
+            if (timeout) ++timeouts;
+            faulted = timeout or invalid;
+            response_time_us = time_us;
+            avg_resp_time_us = 0.99*avg_resp_time_us + 0.01*time_us;
+            max_resp_time_us = std::max(max_resp_time_us, time_us);
+        }
+
+    };
+
+private:
+
     static const unsigned max_response_time_us = 1000;
     static const unsigned byte_delay_us = 1;
     static const unsigned ping_timeout_us = 50;
@@ -78,26 +98,8 @@ class sensorimotor
         invalid,
     } syncstate = sync0;
 
-    /* statistics */
-    struct Statistics_t {
-        unsigned errors = 0;
-        unsigned timeouts = 0;
-        unsigned response_time_us = 0;
-        float    avg_resp_time_us = 0.0;
-        unsigned max_resp_time_us = 0;
 
-        bool faulted = false;
-
-        void update(unsigned time_us, bool timeout, bool invalid) {
-            if (invalid) ++errors;
-            if (timeout) ++timeouts;
-            faulted = timeout or invalid;
-            response_time_us = time_us;
-            avg_resp_time_us = 0.99*avg_resp_time_us + 0.01*time_us;
-            max_resp_time_us = std::max(max_resp_time_us, time_us);
-        }
-
-    } statistics;
+    Statistics_t statistics;
 
 public:
 
@@ -141,9 +143,8 @@ public:
     }
 
     /* performs a full communication cycle */
-    Statistics_t execute_cycle(void) {
-        if (not do_request) return Statistics_t();
-
+    Statistics_t const& execute_cycle(void)
+    {
         assert(send_motor_command()); /** TODO: handle connection lost better */
         receive_response();
 
@@ -163,8 +164,6 @@ public:
     void set_controller_type(Controller_t type) { controller = type; }
 
     Controller_t get_controller_type(void) const { return controller; }
-
-    void toggle_request(void) { do_request = not do_request; }
 
     void set_proportional(double p) { pos_ctrl.Kp = p; }
     void set_csl_limits(double lo, double hi) { csl_ctrl.limit_hi = hi; csl_ctrl.limit_lo = lo; }

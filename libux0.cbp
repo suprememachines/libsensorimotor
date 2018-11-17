@@ -32,6 +32,7 @@
 		<Unit filename="src/common/log_messages.h" />
 		<Unit filename="src/common/modules.cpp" />
 		<Unit filename="src/common/modules.h" />
+		<Unit filename="src/common/timer.h" />
 		<Unit filename="src/communication_ctrl.hpp" />
 		<Unit filename="src/communication_interface.hpp" />
 		<Unit filename="src/controller/csl_control.hpp" />

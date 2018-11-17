@@ -1,30 +1,40 @@
-/*
-    SensorimotorPy
-    Matthias Kubisch
-    kubisch@informatik.hu-berlin.de
-    October 2018
+/*---------------------------------+
+ | Supreme Machines                |
+ | Sensorimotor C++ Library        |
+ | Matthias Kubisch                |
+ | kubisch@informatik.hu-berlin.de |
+ | November 2018                   |
+ +---------------------------------*/
 
-    This is a simple C-API for accessing the sensorimotors from python.
-
+/* This is a simple C-API for accessing the sensorimotors from python.
 */
 
 #include "common/log_messages.h"
+#include "common/timer.h"
 #include "motorcord.hpp"
 
+namespace supreme {
+
+namespace constants {
+    const uint64_t us_per_sec = 1000*1000;
+}
 
 class Motorhandler {
 public:
-    Motorhandler(unsigned number_of_motors, double /*update_rate_Hz*/, bool verbose)
+    Motorhandler(unsigned number_of_motors, double update_rate_Hz, bool verbose)
     : motors(std::min(128u,number_of_motors), verbose)
+    , timer( static_cast<uint64_t>(constants::us_per_sec/update_rate_Hz) )
     {
-        sts_msg("Done starting motor cord.");
+        sts_msg("Done starting motor cord at %.2f Hz.", update_rate_Hz);
+        /**TODO perform a communication test before sending pwm values to the motors. */
     }
 
     void execute_cycle()
     {
         motors.execute_cycle();
-        /**TODO wait blocking correctly until next 10ms*/
-        usleep(1000*8);
+
+        while(!timer.check_if_timed_out_and_restart())
+            usleep(100);
     }
 
     void set_position(double* data, unsigned N)
@@ -72,16 +82,19 @@ public:
 
 private:
     supreme::motorcord motors;
+    supreme::SimpleTimer timer;
 };
 
+} /* namespace supreme */
+
 extern "C" {
-    Motorhandler* sensorimotor_new(unsigned number_of_motors, double update_rate_Hz, bool verbose)
+    supreme::Motorhandler* sensorimotor_new(unsigned number_of_motors, double update_rate_Hz, bool verbose)
     {
         sts_msg("Starting motor cord.");
-        return new Motorhandler(number_of_motors, update_rate_Hz, verbose);
+        return new supreme::Motorhandler(number_of_motors, update_rate_Hz, verbose);
     }
 
-    int sensorimotor_del(Motorhandler* sensorimotor)
+    int sensorimotor_del(supreme::Motorhandler* sensorimotor)
     {
         sts_msg("Stopping motor cord.");
         if (sensorimotor != NULL)
@@ -91,7 +104,7 @@ extern "C" {
         return true;
     }
 
-    int sensorimotor_execute_cycle(Motorhandler* sensorimotor) {
+    int sensorimotor_execute_cycle(supreme::Motorhandler* sensorimotor) {
         if (sensorimotor != NULL) {
             sensorimotor->execute_cycle();
             return 0;
@@ -101,7 +114,7 @@ extern "C" {
         }
     }
 
-    int sensorimotor_set_position(Motorhandler* sensorimotor, double* data, unsigned N) {
+    int sensorimotor_set_position(supreme::Motorhandler* sensorimotor, double* data, unsigned N) {
         if (sensorimotor != NULL) {
             sensorimotor->set_position(data, N);
             return 0;
@@ -111,7 +124,7 @@ extern "C" {
         }
     }
 
-    int sensorimotor_set_voltage_limit(Motorhandler* sensorimotor, double* data, unsigned N) {
+    int sensorimotor_set_voltage_limit(supreme::Motorhandler* sensorimotor, double* data, unsigned N) {
         if (sensorimotor != NULL) {
             sensorimotor->set_voltage_limit(data, N);
             return 0;
@@ -121,7 +134,7 @@ extern "C" {
         }
     }
 
-    int sensorimotor_apply_impulse(Motorhandler* sensorimotor, double* data, unsigned N) {
+    int sensorimotor_apply_impulse(supreme::Motorhandler* sensorimotor, double* data, unsigned N) {
         if (sensorimotor != NULL) {
             sensorimotor->apply_impulse(data, N);
             return 0;
@@ -131,7 +144,7 @@ extern "C" {
         }
     }
 
-    int sensorimotor_get_motor_data(Motorhandler* sensorimotor, double* data, unsigned N) {
+    int sensorimotor_get_motor_data(supreme::Motorhandler* sensorimotor, double* data, unsigned N) {
         if (sensorimotor != NULL) {
             sensorimotor->get_motor_data(data, N);
             return 0;
@@ -141,7 +154,7 @@ extern "C" {
         }
     }
 
-    int sensorimotor_ping(Motorhandler* sensorimotor) {
+    int sensorimotor_ping(supreme::Motorhandler* sensorimotor) {
         if (sensorimotor == NULL) return -1;
         return sensorimotor->ping();
     }
