@@ -23,7 +23,7 @@ class Motorhandler {
 public:
     Motorhandler(unsigned number_of_motors, double update_rate_Hz, bool verbose)
     : motors(std::min(128u,number_of_motors), verbose)
-    , timer( static_cast<uint64_t>(constants::us_per_sec/update_rate_Hz) )
+    , timer( static_cast<uint64_t>(constants::us_per_sec/update_rate_Hz), /*enable=*/true )
     {
         sts_msg("Done starting motor cord at %.2f Hz.", update_rate_Hz);
         /**TODO perform a communication test before sending pwm values to the motors. */
