@@ -37,30 +37,6 @@ inline double  int16_to_sc(uint16_t word) { return (int16_t) word / 32768.0; }
 
 class sensorimotor
 {
-public:
-    /* statistics */
-    struct Statistics_t {
-        unsigned errors = 0;
-        unsigned timeouts = 0;
-        unsigned response_time_us = 0;
-        float    avg_resp_time_us = 0.0;
-        unsigned max_resp_time_us = 0;
-
-        bool faulted = false;
-
-        void update(unsigned time_us, bool timeout, bool invalid) {
-            if (invalid) ++errors;
-            if (timeout) ++timeouts;
-            faulted = timeout or invalid;
-            response_time_us = time_us;
-            avg_resp_time_us = 0.99*avg_resp_time_us + 0.01*time_us;
-            max_resp_time_us = std::max(max_resp_time_us, time_us);
-        }
-
-    };
-
-private:
-
     static const unsigned max_response_time_us = 1000;
     static const unsigned byte_delay_us = 1;
     static const unsigned ping_timeout_us = 50;
@@ -79,7 +55,7 @@ private:
     double                    scalefactor = 1.0;
     double                    offset = 0.0;
 
-    interface_data data;
+    interface_data            data;
 
     double                    target_voltage  = .0;
     double                    voltage_limit   = .0;
@@ -98,9 +74,6 @@ private:
         invalid,
     } syncstate = sync0;
 
-
-    Statistics_t statistics;
-
 public:
 
     enum Controller_t {
@@ -118,7 +91,6 @@ public:
     , pos_ctrl(id)
     , csl_ctrl(id)
     , imp_ctrl(id)
-    , statistics()
     {}
 
     /* returns the motors data, such as position, current etc. */
@@ -155,11 +127,11 @@ public:
             receive_response(/*ping_timeout_us*/);
         }
 
-        return statistics;
+        return data.statistics;
     }
 
-    const Statistics_t& get_stats(void) const { return statistics; }
-    void reset_statistics(void) { statistics = Statistics_t(); }
+    const Statistics_t& get_stats(void) const { return data.statistics; }
+    void reset_statistics(void) { data.statistics = Statistics_t(); }
 
     void set_controller_type(Controller_t type) { controller = type; }
 
@@ -268,7 +240,7 @@ private:
             while(receive_data());
         } while(++t_us < timeout_us and is_pending() and com.wait_us(byte_delay_us));
 
-        statistics.update(t_us, t_us >= timeout_us, !is_data_valid());
+        data.statistics.update(t_us, t_us >= timeout_us, !is_data_valid());
     }
 
     /* return code true means continue processing, false: wait for next byte */

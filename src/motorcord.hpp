@@ -45,7 +45,7 @@ public:
     std::size_t size() const { return motors.size(); }
 
     void reset_statistics(void) { for (auto& m : motors) m.reset_statistics(); }
-    void rescan(void) { rescan_for_motors = true; }
+    void rescan(void) { reset_statistics(); rescan_for_motors = true; }
 
 
     void execute_cycle()
