@@ -103,7 +103,7 @@ public:
     bool is_active(void) const { return is_responding; }
 
     /* disables the output stage of the motor by sending data requests only */
-    void disable(void) { controller = Controller_t::none; }
+    void disable(void) { controller = Controller_t::none; set_target_voltage(0.); }
 
     bool ping(void) {
         is_responding = false;
@@ -172,6 +172,7 @@ private:
     /** TODO: enqueue sync bytes and checksum could be done by someone else since each package is affected */
 
     void enqueue_command_data_request() {
+        data.output_voltage = .0;
         com.enqueue_sync_bytes(0xFF);
         com.enqueue_byte(0xC0);
         com.enqueue_byte(motor_id);
