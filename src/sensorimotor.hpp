@@ -152,6 +152,8 @@ public:
     void set_scalefactor(double scf) { scalefactor = scf; }
     void set_offset(double o) { offset = o; }
 
+    void set_zero_position(void) { offset -= data.position; }
+
     void set_disable_position_limits(double lo, double hi) { lim_disable_lo = lo; lim_disable_hi = hi; }
 
     void set_ext_sensor_readout(bool enable) { read_external_sensor = enable; }
