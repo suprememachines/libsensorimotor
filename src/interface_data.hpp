@@ -24,14 +24,14 @@ namespace supreme {
     };
 
     struct interface_data {
-        double output_voltage  = 0.0;
-        double position        = 0.0;
-        double velocity        = 0.0;
-        double current         = 0.0;
-        double voltage_backemf = 0.0;
-        double voltage_supply  = 0.0;
-        double temperature     = 0.0;
-        struct Acceleration { double x,y,z; } acceleration = {0.,0.,0.};
+        float output_voltage  = 0.0;
+        float position        = 0.0;
+        float velocity        = 0.0;
+        float current         = 0.0;
+        float voltage_backemf = 0.0;
+        float voltage_supply  = 0.0;
+        float temperature     = 0.0;
+        struct Acceleration { float x,y,z; } acceleration = {0.,0.,0.};
         Statistics_t statistics = {};
     };
 

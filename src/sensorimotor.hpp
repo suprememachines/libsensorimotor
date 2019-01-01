@@ -32,17 +32,17 @@
 
 namespace supreme {
 
-inline double uint16_to_sc(uint16_t word) { return (word - 32768) / 32768.0; }
-inline double  int16_to_sc(uint16_t word) { return (int16_t) word / 32768.0; }
+inline float uint16_to_sc(uint16_t word) { return (word - 32768) / 32768.f; }
+inline float  int16_to_sc(uint16_t word) { return (int16_t) word / 32768.f; }
 
 class sensorimotor
 {
     static const unsigned max_response_time_us = 1000;
-    static const unsigned byte_delay_us = 1;
+    static const unsigned byte_delay_us = 10;
     static const unsigned ping_timeout_us = 50;
 
-    constexpr static const double voltage_scale = 0.012713472; /* Vmax = 13V -> 1023 */
-    constexpr static const double current_scale = 0.003225806; /* Imax = 3A3 -> 1023 */
+    constexpr static const float voltage_scale = 0.012713472f; /* Vmax = 13V -> 1023 */
+    constexpr static const float current_scale = 0.003225806f; /* Imax = 3A3 -> 1023 */
 
     const uint8_t             motor_id;
     communication_interface&  com;
@@ -52,15 +52,15 @@ class sensorimotor
     bool                      read_external_sensor = false;
 
     int16_t                   direction = 1;
-    double                    scalefactor = 1.0;
-    double                    offset = 0.0;
+    float                     scalefactor = 1.f;
+    float                     offset = 0.f;
 
     interface_data            data;
 
-    double                    target_voltage  = .0;
-    double                    voltage_limit   = .0;
-    double                    lim_disable_hi  = +0.90;
-    double                    lim_disable_lo  = -0.90;
+    float                     target_voltage  = .0f;
+    float                     voltage_limit   = .0f;
+    float                     lim_disable_hi  = +0.90f;
+    float                     lim_disable_lo  = -0.90f;
 
     pid_control     pos_ctrl;
     csl_control     csl_ctrl;
@@ -137,24 +137,24 @@ public:
 
     Controller_t get_controller_type(void) const { return controller; }
 
-    void set_proportional(double p) { pos_ctrl.Kp = p; }
-    void set_csl_limits(double lo, double hi) { csl_ctrl.limit_hi = hi; csl_ctrl.limit_lo = lo; }
-    void set_target_csl_mode(double m) { csl_ctrl.target_csl_mode = m; }
-    void set_target_csl_fb  (double f) { csl_ctrl.target_csl_fb   = f; }
-    void set_target_position(double p) { pos_ctrl.target_value = p; }
-    void set_target_voltage (double v) { target_voltage = clip(v, voltage_limit); }
+    void set_proportional(float p) { pos_ctrl.Kp = p; }
+    void set_csl_limits(float lo, float hi) { csl_ctrl.limit_hi = hi; csl_ctrl.limit_lo = lo; }
+    void set_target_csl_mode(float m) { csl_ctrl.target_csl_mode = m; }
+    void set_target_csl_fb  (float f) { csl_ctrl.target_csl_fb   = f; }
+    void set_target_position(float p) { pos_ctrl.target_value = p; }
+    void set_target_voltage (float v) { target_voltage = clip(v, voltage_limit); }
 
-    void set_voltage_limit(double limit) { voltage_limit = clip(limit, 0., 1.); voltage_limit_changed = true; }
+    void set_voltage_limit(float limit) { voltage_limit = clip(limit, 0., 1.); voltage_limit_changed = true; }
 
-    void apply_impulse(double value, unsigned duration) { imp_ctrl.value = value; imp_ctrl.duration = duration; }
+    void apply_impulse(float value, unsigned duration) { imp_ctrl.value = value; imp_ctrl.duration = duration; }
 
     void set_direction(int16_t dir) { direction = dir; }
-    void set_scalefactor(double scf) { scalefactor = scf; }
-    void set_offset(double o) { offset = o; }
+    void set_scalefactor(float scf) { scalefactor = scf; }
+    void set_offset(float o) { offset = o; }
 
     void set_zero_position(void) { offset -= data.position; }
 
-    void set_disable_position_limits(double lo, double hi) { lim_disable_lo = lo; lim_disable_hi = hi; }
+    void set_disable_position_limits(float lo, float hi) { lim_disable_lo = lo; lim_disable_hi = hi; }
 
     void set_ext_sensor_readout(bool enable) { read_external_sensor = enable; }
 
@@ -188,7 +188,7 @@ private:
         com.enqueue_checksum();
     }
 
-    void enqueue_command_set_voltage(double voltage) {
+    void enqueue_command_set_voltage(float voltage) {
         data.output_voltage = voltage;
         voltage *= direction; // correct direction
         com.enqueue_sync_bytes(0xFF);
