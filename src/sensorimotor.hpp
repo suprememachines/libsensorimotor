@@ -84,11 +84,11 @@ public:
         impulse  = 4,
     } controller = none;
 
-    sensorimotor(uint8_t id, communication_interface& com)
+    sensorimotor(uint8_t id, communication_interface& com, float update_rate_Hz)
     : motor_id(id)
     , com(com)
     , data()
-    , pos_ctrl(id)
+    , pos_ctrl(id, 1.f/update_rate_Hz)
     , csl_ctrl(id)
     , imp_ctrl(id)
     {}
@@ -137,14 +137,19 @@ public:
 
     Controller_t get_controller_type(void) const { return controller; }
 
-    void set_proportional(float p) { pos_ctrl.Kp = p; }
+    void set_pos_ctrl_params(float Kp, float Ki, float Kd, float db = 0.f, float pt = 0.f) {
+        pos_ctrl.set_pid(Kp, Ki, Kd);
+        pos_ctrl.set_dead_band(db);
+        pos_ctrl.set_pulse_mode_threshold(pt);
+    }
+
     void set_csl_limits(float lo, float hi) { csl_ctrl.limit_hi = hi; csl_ctrl.limit_lo = lo; }
     void set_target_csl_mode(float m) { csl_ctrl.target_csl_mode = m; }
     void set_target_csl_fb  (float f) { csl_ctrl.target_csl_fb   = f; }
-    void set_target_position(float p) { pos_ctrl.target_value = p; }
+    void set_target_position(float p) { pos_ctrl.set_target_value(p); }
     void set_target_voltage (float v) { target_voltage = clip(v, voltage_limit); }
 
-    void set_voltage_limit(float limit) { voltage_limit = clip(limit, 0., 1.); voltage_limit_changed = true; }
+    void set_voltage_limit(float limit) { voltage_limit = clip(limit, 0.f, 1.f); voltage_limit_changed = true; pos_ctrl.set_limit(voltage_limit); }
 
     void apply_impulse(float value, unsigned duration) { imp_ctrl.value = value; imp_ctrl.duration = duration; }
 

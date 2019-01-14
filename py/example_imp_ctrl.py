@@ -36,18 +36,19 @@ tst1 = [ ([0.0, 0.6, 0.0], 0.20)
 def main():
     motors = Sensorimotor(number_of_motors = 3, verbose = False)
 
-    # checking for motors
-    N = motors.ping()
-    print("Found {0} sensorimotors.".format(N))
-    sleep(1.0)
-
-    # starting motorcord
-    motors.set_voltage_limit([0.6, 0.6, 0.6])
-    motors.start()
-
-    beat = tst0
-
     try:
+        # checking for motors
+        N = motors.ping()
+        print("Found {0} sensorimotors.".format(N))
+        sleep(1.0)
+
+        #TODO: set this according to your supply voltage and desired max. motor speed
+        #motors.set_voltage_limit([0.25, 0.25, 0.25])
+
+        # starting motorcord
+        motors.start()
+
+        beat = tst0
 
         while(True):
             # USER CODE HERE BEGIN
@@ -77,4 +78,6 @@ def main():
     print("____\nDONE.")
 
 
-if __name__ == "__main__": main()
+if __name__ == "__main__":
+    main()
+

@@ -60,6 +60,12 @@ class Sensorimotor(object):
         carray = (c_double * len(target_position))(*target_position)
         n = lib.sensorimotor_set_position(self.obj, carray, c_uint(len(carray)))
 
+    def set_pos_ctrl_params(self, motor_id, Kp = 0.0, Ki = 0.0, Kd = 0.0, deadband = 0.0, pulse_threshold = 0.0):
+        assert 0 <= motor_id < self.number_of_motors
+        params = [Kp, Ki, Kd, deadband, pulse_threshold]
+        carray = (c_double * len(params))(*params)
+        n = lib.sensorimotor_set_pos_ctrl_params(self.obj, motor_id, carray, c_uint(len(carray)))
+
     def set_voltage_limit(self, limits):
         assert len(limits) <= self.number_of_motors
         target_limits = list(limits)
@@ -76,7 +82,7 @@ class Sensorimotor(object):
         carray = (c_double * len(self.motor_data))(*self.motor_data)
         n = lib.sensorimotor_get_motor_data(self.obj, carray, c_uint(len(carray)))
         self.motor_data = list(carray)
-        
+
 
     def get_position(self):
         return self.motor_data
@@ -113,6 +119,9 @@ def set_types():
     lib.sensorimotor_set_position.argtypes = [c_void_p, c_void_p, c_uint]
     lib.sensorimotor_set_position.restype = c_int
 
+    lib.sensorimotor_set_pos_ctrl_params.argtypes = [c_void_p, c_uint, c_void_p, c_uint]
+    lib.sensorimotor_set_pos_ctrl_params.restype = c_int
+
     lib.sensorimotor_set_voltage_limit.argtypes = [c_void_p, c_void_p, c_uint]
     lib.sensorimotor_set_voltage_limit.restype = c_int
 
@@ -121,5 +130,4 @@ def set_types():
 
     lib.sensorimotor_get_motor_data.argtypes = [c_void_p, c_void_p, c_uint]
     lib.sensorimotor_get_motor_data.restype = c_int
-
 

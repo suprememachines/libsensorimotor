@@ -22,7 +22,7 @@ namespace constants {
 class Motorhandler {
 public:
     Motorhandler(unsigned number_of_motors, double update_rate_Hz, bool verbose)
-    : motors(std::min(128u,number_of_motors), verbose)
+    : motors(std::min(128u,number_of_motors), update_rate_Hz, verbose)
     , timer( static_cast<uint64_t>(constants::us_per_sec/update_rate_Hz), /*enable=*/true )
     {
         sts_msg("Done starting motor cord at %.2f Hz.", update_rate_Hz);
@@ -45,6 +45,14 @@ public:
             motors[i].set_controller_type(supreme::sensorimotor::Controller_t::position);
             motors[i].set_target_position(data[i]);
         }
+    }
+
+    void set_pos_ctrl_params(unsigned motor_id, double* data, unsigned N)
+    {
+        if (N >= 5 and motor_id < motors.size()) {
+            motors[motor_id].set_pos_ctrl_params(data[0], data[1], data[2], data[3], data[4]);
+        }
+        else wrn_msg("Too few parameters or wrong motor id");
     }
 
     void set_voltage_limit(double* data, unsigned N)
@@ -87,6 +95,9 @@ private:
 
 } /* namespace supreme */
 
+inline void warning(const char* where) { wrn_msg("Motor cord already stopped in '%s'", where); }
+
+
 extern "C" {
     supreme::Motorhandler* sensorimotor_new(unsigned number_of_motors, double update_rate_Hz, bool verbose)
     {
@@ -100,7 +111,7 @@ extern "C" {
         if (sensorimotor != NULL)
             delete sensorimotor;
         else
-            wrn_msg("Motor cord already stopped (delete).");
+            warning("delete");
         return true;
     }
 
@@ -109,7 +120,7 @@ extern "C" {
             sensorimotor->execute_cycle();
             return 0;
         } else {
-            wrn_msg("Motor cord already stopped (execute_cycle).");
+            warning("execute_cycle");
             return -1;
         }
     }
@@ -119,9 +130,21 @@ extern "C" {
             sensorimotor->set_position(data, N);
             return 0;
         } else {
-            wrn_msg("Motor cord already stopped (set_position).");
+            warning("set_position");
             return -1;
         }
+    }
+
+    int sensorimotor_set_pos_ctrl_params(supreme::Motorhandler* sensorimotor, unsigned mid, double* data, unsigned N) {
+        if (sensorimotor != NULL) {
+            sensorimotor->set_pos_ctrl_params(mid, data, N);
+            return 0;
+        } else {
+            warning("set_pos_ctrl_params");
+            return -1;
+        }
+
+
     }
 
     int sensorimotor_set_voltage_limit(supreme::Motorhandler* sensorimotor, double* data, unsigned N) {
@@ -129,7 +152,7 @@ extern "C" {
             sensorimotor->set_voltage_limit(data, N);
             return 0;
         } else {
-            wrn_msg("Motor cord already stopped (set_voltage_limit).");
+            warning("set_voltage_limit");
             return -1;
         }
     }
@@ -139,7 +162,7 @@ extern "C" {
             sensorimotor->apply_impulse(data, N);
             return 0;
         } else {
-            wrn_msg("Motor cord already stopped (apply_impulse).");
+            warning("apply_impulse");
             return -1;
         }
     }
@@ -149,7 +172,7 @@ extern "C" {
             sensorimotor->get_motor_data(data, N);
             return 0;
         } else {
-            wrn_msg("Motor cord already stopped (get_data).");
+            warning("get_data");
             return -1;
         }
     }

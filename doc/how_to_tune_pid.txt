@@ -1,0 +1,49 @@
+HOW TO TUNE YOUR SENSORIMOTOR POSITION CONTROLLER
+-------------------------------------------------
+Matthias Kubisch
+Jan. 14th 2019
+
+
+
+There are several parameters which need to be tuned manually for changing the behaviour of your servo motor in position control mode.
+
+VOLTAGE LIMIT
+-------------
+
+Most important is the voltage limit. You can set this in python with:
+
+    set_voltage_limit(limits)
+
+where "limits" is a list of N elements, one according to each of the N attached motors. The voltage limit is setting the maximally allowed PWM duty cycle [0...1.0] with reference to the supply voltage. For instance, if supply is 12 Volts and you set 0.25 as the limit than the motor is powered by maximally 3 Volts on average.
+Unless you do know exactly why, you should set the voltage limit in accordance to your motors specification or below. If you start prototyping it is generally recommended to set the voltage limit very conservatively to protect your hardware in case of bugs in your early stage software. Some motors have physical limits (endstops for instance) which can easily get break.
+
+
+TUNING THE PID CONTROLLER
+-------------------------
+
+The position controller is based on a classical PID control technique with a somewhat unconventional anti-friction mode. It is recommended to read some general text about PID controllers before your start tuning. The PIDs parameter can be set with:
+
+    set_pos_ctrl_params(motor_id = 0, Kp = 0.0, Ki = 0.0, Kd = 0.0, deadband = 0.0, pulse_threshold = 0.0)
+
+Please note that setting controller parameters MUST BE TESTED for each type of motor separately. There is no default setting which will work for any motor. Also the way the motor is loaded with an additional mass must be incorporated. For instance in a robotic arm, with several motorized joints, even when they are of the same type but differently mounted and loaded, each joint must be tuned individually. I recommend plotting the position and velocity trajectory during parameter setup.
+
+
+PROPORTIONAL AND DERIVATIVE CONSTANTS
+-------------------------------------
+A good strategy to find these parameters is to start with all PID params zero and set a low voltage limit, e.g. 25% of the allowed voltage. Then slowly and carefully increase the proportional constant "Kp" and/or the voltage limit until you reach the desired level of reactivity and maximal speed. Try changing your setpoint (target position) rapidly and test also with larger setpoint steps. If the controller is accelerating too fast then try increasing "Kd", the derivative constant.
+
+
+INTEGRAL CONSTANT
+-----------------
+You will probably notice that the motor is not reaching the desired setpoint completely, especially in the presence of (sticking) friction. The controllers (voltage) output is low, when the current position is already close to the target position. The gears in the motor and in the bearings introduce friction and the system may not move if the voltage is too low. The integral part can help here, carefully increase it and see if it brings the motor closer to the setpoint. If the motor starts a little oscillation around the setpoint then your integral part is too high.
+
+
+DEADBAND
+--------
+Deadband just limits the lower end of the voltage output, i.e. every controller output below this deadband value is set to zero. This avoids infinitely trying to reach a setpoint when the true value cannot be reached for some reason but is already close enough.
+
+
+LOW-FREQUENCY PULSE MODE
+------------------------
+A more experimental setting here is the "pulse_threshold". In the presence of sticking friction it could help, sometimes better than using integral controllers, to switch into a low-frequency pulse mode and chopping the voltage to avoid the sticking regime of the friction and always stay in the sliding regime where the friction is lower. For this, the output voltage is checked if it is fallen below the "pulse_threshold", and henceforth not reducing the voltage but only the probability of pulses. For example, imaging we found out that the motor starts moving with a voltage of 1 Volts, but is not moving below. We set this 1 Volt as pulse threshold and when the voltage would usually go below, say 0.5 V we send out voltage pulses of 1 V height with 50% probability.
+
