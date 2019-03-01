@@ -4,8 +4,25 @@ Author(s):
 
 Matthias Kubisch  
 kubisch@informatik.hu-berlin.de  
-October 2018  
+Last update: March 2019  
 
+## Clone the repository
+
+Check that 'git' is installed:
+
+	git --version
+
+and install if needed:
+
+	sudo apt install git
+
+Clone the repository:
+
+	git clone https://github.com/suprememachines/libsensorimotor.git
+
+and navigate to the newly created working directory:
+
+	cd libsensorimotor
 
 ## Building the shared library
 
