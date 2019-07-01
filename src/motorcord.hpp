@@ -22,7 +22,7 @@ class motorcord {
     bool verbose;
 
 public:
-    motorcord(uint8_t number_of_boards, float update_rate_Hz, bool verbose = true)
+    motorcord(uint8_t number_of_boards, float update_rate_Hz = 100.f, bool verbose = true)
     : com(), motors(), verbose(verbose)
     {
         assert(number_of_boards <= max_boards);

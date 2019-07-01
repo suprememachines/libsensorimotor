@@ -26,6 +26,8 @@ namespace supreme {
     struct interface_data {
         float output_voltage  = 0.0;
         float position        = 0.0;
+        //TODO remove:
+            float last_p = 0.0;
         float velocity        = 0.0;
         float current         = 0.0;
         float voltage_backemf = 0.0;

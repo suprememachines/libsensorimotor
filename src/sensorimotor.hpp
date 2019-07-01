@@ -291,9 +291,12 @@ private:
                         com.get_byte(); /* eat command byte */
                         uint8_t mid = com.get_byte();
                         if (mid == motor_id) {
+                            /**TODO remove */ data.last_p = data.position;
                             data.position        = uint16_to_sc(com.get_word()) * direction * scalefactor + offset;
                             data.current         = com.get_word() * current_scale;
-                            data.velocity        = int16_to_sc(com.get_word()) * direction * scalefactor;
+                            /**TODO remove*/ com.get_word();
+                            //TODO resinsert: data.velocity        = int16_to_sc(com.get_word()) * direction * scalefactor;
+                            /**TODO remove: */ data.velocity = (data.position - data.last_p) * 20.f;
                             data.voltage_supply  = com.get_word() * voltage_scale;
                             data.temperature     = static_cast<int16_t>(com.get_word()) / 100.0;
                             /**TODO implement voltage_backemf */
