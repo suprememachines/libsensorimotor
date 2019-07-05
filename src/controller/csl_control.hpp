@@ -25,7 +25,7 @@ public:
 
     uint8_t id;
 
-    csl_control(uint8_t id) : id(id) { }
+    csl_control(uint8_t id = 0) : id(id) { }
 
     /* TODO make value gi configurable */
     void update_mode() {
@@ -34,14 +34,14 @@ public:
         gf = target_csl_fb * pos(mode);
     }
 
-    double step(double /*current position=*/p)
+    double step(double /*current position=*/p, double in = .0)
     {
         update_mode();
 
         if (p > limit_hi) z = std::min(z, gi * p);
         if (p < limit_lo) z = std::max(z, gi * p);
 
-        double u = clip(-gi * p + z, .5);
+        double u = clip(-gi * p + z + in, .5);
         z = gi * p + gf * u;
 
         return u;
