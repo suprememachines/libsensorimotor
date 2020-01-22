@@ -35,6 +35,8 @@ namespace supreme {
         float temperature     = 0.0;
         struct Acceleration { float x,y,z; } acceleration = {0.,0.,0.};
         Statistics_t statistics = {};
+
+        uint8_t raw[256] = {};
     };
 
 }

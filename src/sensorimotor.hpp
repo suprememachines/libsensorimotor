@@ -289,7 +289,7 @@ private:
                 case 0x80: /* state data response */
                     if (com.size() > 12) { // cmd + id + 2pos + 2cur + 2uba + 2usu +2tmp + chk = 13
                         com.get_byte(); /* eat command byte */
-                        uint8_t mid = com.get_byte();
+                        const uint8_t mid = com.get_byte();
                         if (mid == motor_id) {
                             /**TODO remove */ data.last_p = data.position;
                             data.position        = uint16_to_sc(com.get_word()) * direction * scalefactor + offset;
@@ -300,6 +300,22 @@ private:
                             data.voltage_supply  = com.get_word() * voltage_scale;
                             data.temperature     = static_cast<int16_t>(com.get_word()) / 100.0;
                             /**TODO implement voltage_backemf */
+                            com.get_byte(); /* eat checksum */
+                        }
+                        syncstate = (motor_id == mid and com.is_checksum_ok()) ? completed : invalid;
+                        is_responding = (syncstate == completed);
+                        return true;
+                    }
+                    return false;
+
+                case 0xC1: /* raw data response */
+                    if (com.size() > 2u && com.size() > com.look_ahead(2) + 3u) { // N raw bytes + (cmd + id + Nbytes + chksum)
+                        com.get_byte(); /* eat command byte */
+                        const uint8_t mid = com.get_byte();
+                        if (mid == motor_id) {
+                            const uint8_t len = com.get_byte();
+                            for (uint8_t i = 0; i < len; ++i)
+                                data.raw[i] = com.get_byte();
                             com.get_byte(); /* eat checksum */
                         }
                         syncstate = (motor_id == mid and com.is_checksum_ok()) ? completed : invalid;
