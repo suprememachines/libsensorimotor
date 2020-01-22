@@ -56,3 +56,15 @@ err_msg(const char* file, unsigned int line, const char* format, ...)
     exit(EXIT_FAILURE);
 }
 
+void
+promise(bool condition, const char* file, unsigned int line, const char* format, ...)
+{
+    if (condition) return;
+    va_list args;
+    va_start(args, format);
+    printf("%sASSERTION:%s ", KCYN, KNRM);
+    vprintf(format, args);
+    printf("%s\nFile %s in line %d%s\n", KWHT, file, line, KNRM);
+    va_end(args);
+    exit(EXIT_FAILURE);
+}
