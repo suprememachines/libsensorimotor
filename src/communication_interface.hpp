@@ -19,6 +19,8 @@ public:
     virtual void enqueue_word(uint16_t word) = 0;
     virtual void enqueue_checksum() = 0;
 
+    virtual uint8_t look_ahead(std::size_t i) const = 0;
+
     /* queue-like interface */
     virtual bool empty(void) const = 0;
     virtual uint8_t front() const = 0;

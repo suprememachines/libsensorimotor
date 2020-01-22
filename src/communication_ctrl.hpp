@@ -30,8 +30,8 @@ class communication_controller : public communication_interface {
     mutable mutex_t send_mtx;
     mutable mutex_t recv_mtx;
 
-    std::queue<uint8_t> send_queue;
-    std::queue<uint8_t> recv_queue;
+    std::deque<uint8_t> send_queue;
+    std::deque<uint8_t> recv_queue;
     uint8_t send_checksum = 0;
     uint8_t recv_checksum = 0;
 
@@ -66,19 +66,19 @@ public:
 
         if (n > 0) // copy to queue
             for (int i = 0; i < n; ++i)
-                recv_queue.push(buf[i]);
+                recv_queue.push_back(buf[i]);
     }
 
     void enqueue_sync_bytes(uint8_t sync) {
         lock_t lock(send_mtx);
-        send_queue.push(sync);
-        send_queue.push(sync);
+        send_queue.push_back(sync);
+        send_queue.push_back(sync);
         send_checksum += sync+sync;
     }
 
     void enqueue_byte(uint8_t byte) {
         lock_t lock(send_mtx);
-        send_queue.push(byte);
+        send_queue.push_back(byte);
         send_checksum += byte;
     }
 
@@ -89,20 +89,22 @@ public:
 
     void enqueue_checksum(void) {
         lock_t lock(send_mtx);
-        send_queue.push(~send_checksum + 1);
+        send_queue.push_back(~send_checksum + 1);
         send_checksum = 0;
     }
 
     bool       empty() const { lock_t lock(recv_mtx); return recv_queue.empty(); }
-    void         pop()       { lock_t lock(recv_mtx); recv_queue.pop();          }
+    void         pop()       { lock_t lock(recv_mtx); recv_queue.pop_front();    }
     uint8_t    front() const { lock_t lock(recv_mtx); return recv_queue.front(); }
     std::size_t size() const { lock_t lock(recv_mtx); return recv_queue.size();  }
+
+    uint8_t look_ahead(std::size_t i) const { return i < size() ? recv_queue[i] : 0; }
 
     uint8_t get_byte() {
         lock_t lock(recv_mtx);
         assert(recv_queue.size() > 0);
         uint8_t tmp = recv_queue.front();
-        recv_queue.pop();
+        recv_queue.pop_front();
         recv_checksum += tmp;
         return tmp;
     }
@@ -110,8 +112,8 @@ public:
     uint16_t get_word() {
         lock_t lock(recv_mtx);
         assert(recv_queue.size() > 1);
-        uint8_t tmp1 = recv_queue.front(); recv_queue.pop();
-        uint8_t tmp0 = recv_queue.front(); recv_queue.pop();
+        uint8_t tmp1 = recv_queue.front(); recv_queue.pop_front();
+        uint8_t tmp0 = recv_queue.front(); recv_queue.pop_front();
         recv_checksum += tmp1;
         recv_checksum += tmp0;
         return (tmp1 << 8) + tmp0;
@@ -131,7 +133,7 @@ public:
         std::size_t ptr = 0;
         while(not send_queue.empty()) {
             buf[ptr++] = send_queue.front();
-            send_queue.pop();
+            send_queue.pop_front();
             if (ptr >= sizeof(buf) - 1 )
                 err_msg(__FILE__,__LINE__,"Buffer overflow.");
         }
