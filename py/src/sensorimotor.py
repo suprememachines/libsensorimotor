@@ -31,6 +31,9 @@ class UX0Data(object):
         self.vol = [0.0] * num_motors
         self.tem = [0.0] * num_motors
 
+        self.raw_send = [[0]*256] * num_motors
+        self.raw_recv = [[0]*256] * num_motors
+
 
 class Sensorimotor(object):
 
@@ -70,6 +73,8 @@ class Sensorimotor(object):
     def __check_args(self, li):
         assert len(li) == self.number_of_motors, "Invalid number of list elements."
 
+    def __check_id(self, id):
+        assert 0 <= id < self.number_of_motors, "Invalid motor id."
 
     def set_position(self, positions):
         self.__check_args(positions)
@@ -79,10 +84,10 @@ class Sensorimotor(object):
 
 
     def set_pos_ctrl_params(self, motor_id, Kp = 0.0, Ki = 0.0, Kd = 0.0, deadband = 0.0, pulse_threshold = 0.0):
-        assert 0 <= motor_id < self.number_of_motors, "Invalid motor id."
+        self.__check_id(motor_id)
         params = [Kp, Ki, Kd, deadband, pulse_threshold]
         carray = (c_float * len(params))(*params)
-        n = lib.sensorimotor_set_pos_ctrl_params(self.obj, motor_id, carray, c_uint8(len(carray)))
+        n = lib.sensorimotor_set_pos_ctrl_params(self.obj, c_uint8(motor_id), carray, c_uint8(len(carray)))
 
 
     def set_voltage_limit(self, limits):
@@ -100,6 +105,15 @@ class Sensorimotor(object):
         _val = (c_float * len(target_val))(*target_val)
         _dur = (c_float * len(target_dur))(*target_dur)
         n = lib.sensorimotor_apply_impulse(self.obj, _val, _dur, c_uint8(len(_val)))
+
+
+    # todo split to set and apply, or set flag if changed or sth.
+    def set_raw_data_send(self, motor_id, data):
+        assert len(data) <= len(self.data.raw_send[motor_id]), "Invalid number of list elements."
+        self.__check_id(motor_id)
+        self.data.raw_send[motor_id] = list(data)
+        _raw = (c_uint8 * len(self.data.raw_send[motor_id]))(*self.data.raw_send[motor_id])
+        n = lib.sensorimotor_set_raw_data_send(self.obj, c_uint8(motor_id), _raw, c_uint8(len(_raw)))
 
 
     def __get_motor_data(self): #TODO use struct?
@@ -147,6 +161,16 @@ class Sensorimotor(object):
     def get_temperature(self, index=None):
         return list(self.data.tem) if index is None else self.data.tem[index]
 
+    # todo split to fetch and get
+    def get_raw_data_recv(self, motor_id, Nbytes = 256):
+        assert 0 <= motor_id < self.number_of_motors, "Invalid motor id."
+        N = len(self.data.raw_recv[motor_id])
+        assert Nbytes <= N, "Invalid number of bytes requested."
+        _raw = (c_uint8 * N)(*self.data.raw_recv[motor_id])
+        lib.sensorimotor_get_raw_data_recv(self.obj, motor_id, _raw, c_uint8(Nbytes))
+        self.data.raw_recv[motor_id] = list(_raw)
+        return self.data.raw_recv[motor_id][:Nbytes]
+
 # END CLASS Sensorimotor
 
 
@@ -177,3 +201,9 @@ def set_types():
 
     lib.sensorimotor_get_motor_data.argtypes = [c_void_p, c_void_p, c_void_p, c_void_p, c_void_p, c_void_p,c_uint8]
     lib.sensorimotor_get_motor_data.restype = c_int
+
+    lib.sensorimotor_set_raw_data_send.argtypes = [c_void_p, c_uint8, c_void_p, c_uint8]
+    lib.sensorimotor_set_raw_data_send.restype = c_int
+
+    lib.sensorimotor_get_raw_data_recv.argtypes = [c_void_p, c_uint8, c_void_p, c_uint8]
+    lib.sensorimotor_get_raw_data_recv.restype = c_int

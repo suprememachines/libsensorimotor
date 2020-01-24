@@ -40,34 +40,34 @@ public:
 
     void set_position(float* data, uint8_t N)
     {
-        assertion(motors.size() == N, "Cannot set position. Array size does not match.");
+        check_size(N);
         for (uint8_t i = 0; i < N; ++i)
         {
-            motors[i].set_controller_type(supreme::sensorimotor::Controller_t::position);
+            motors[i].set_controller_type(sensorimotor::Controller_t::position);
             motors[i].set_target_position(data[i]);
         }
     }
 
     void set_pos_ctrl_params(uint8_t id, float* par, uint8_t N)
     {
-        assertion(id < motors.size(), "Invalid motor ID: %u (expected 0-%u).", id, motors.size()-1);
+        check_id(id);
         assertion(N == 5, "Invalid number of control parameters: %u (expected %u).", N, 5);
         motors[id].set_pos_ctrl_params(par[0], par[1], par[2], par[3], par[4]);
     }
 
     void set_voltage_limit(float* lim, uint8_t N)
     {
-        assertion(motors.size() == N, "Cannot set voltage limit. Array size does not match.");
+        check_size(N);
         for (uint8_t i = 0; i < N; ++i)
             motors[i].set_voltage_limit(lim[i]);
     }
 
     void apply_impulse(float* val, float* dur, uint8_t N)
     {
-        assert(motors.size() == N);
+        check_size(N);
         for (uint8_t i = 0; i < N; ++i)
         {
-            motors[i].set_controller_type(supreme::sensorimotor::Controller_t::impulse);
+            motors[i].set_controller_type(sensorimotor::Controller_t::impulse);
             motors[i].set_disable_position_limits(-1.0,+1.0);
             motors[i].apply_impulse(val[i], dur[i]);
         }
@@ -81,7 +81,7 @@ public:
                        , float* tmp
                        , uint8_t N)
     {
-        assert(motors.size() == N);
+        check_size(N);
         for (uint8_t i = 0; i < N; ++i) {
             auto const& m = motors[i].get_data();
             pos[i] = m.position;
@@ -98,11 +98,30 @@ public:
     }
 
 
-    //void set_raw_data(uint8_t id, uint8_t* data, uint8_t N) { /*TODO float or byte data? */}
+    /**TODO consider using float instead of byte data. */
 
-    //void get_raw_data(uint8_t id, uint8_t* data, uint8_t N) {}
+    void set_raw_data_send(uint8_t id, uint8_t* data, uint8_t N) {
+        check_id(id);
+        auto& m = motors[id].set_data();
+        for (uint8_t i = 0; i < N; ++i)
+            m.raw_send[i] = data[i];
+        m.num_sendbytes = N;
+        motors[id].set_controller_type(sensorimotor::Controller_t::send_raw);
+    }
+
+    void get_raw_data_recv(uint8_t id, uint8_t* data, uint8_t N) const {
+        check_id(id);
+        auto const& m = motors[id].get_data();
+        for (uint8_t i = 0; i < N; ++i)
+            data[i] = m.raw_recv[i];
+    }
+
 
 private:
+
+    void check_id  (uint8_t id) const { assertion(id < motors.size(), "Invalid motor ID: %u (expected 0-%u).", id, motors.size()-1); }
+    void check_size(uint8_t  N) const { assertion(motors.size() == N, "Array size does not match."); }
+
     supreme::motorcord motors;
     supreme::SimpleTimer timer;
 };
@@ -131,45 +150,53 @@ extern "C" {
         return new supreme::Motorhandler(number_of_motors, update_rate_Hz, verbose);
     }
 
-    int sensorimotor_del(supreme::Motorhandler* sensorimotor)
+    int sensorimotor_del(supreme::Motorhandler* ux)
     {
         sts_msg("Stopping motor cord.");
-        SAFE_EXEC(sensorimotor, delete sensorimotor)
+        SAFE_EXEC(ux, delete ux)
     }
 
-    int sensorimotor_execute_cycle(supreme::Motorhandler* sensorimotor) {
-        SAFE_EXEC(sensorimotor, sensorimotor->execute_cycle())
+    int sensorimotor_execute_cycle(supreme::Motorhandler* ux) {
+        SAFE_EXEC(ux, ux->execute_cycle())
     }
 
-    int sensorimotor_set_position(supreme::Motorhandler* sensorimotor, float* pos, uint8_t N) {
-        SAFE_EXEC(sensorimotor, sensorimotor->set_position(pos, N))
+    int sensorimotor_set_position(supreme::Motorhandler* ux, float* pos, uint8_t N) {
+        SAFE_EXEC(ux, ux->set_position(pos, N))
     }
 
-    int sensorimotor_set_pos_ctrl_params(supreme::Motorhandler* sensorimotor, uint8_t id, float* par, uint8_t N) {
-        SAFE_EXEC(sensorimotor, sensorimotor->set_pos_ctrl_params(id, par, N))
+    int sensorimotor_set_pos_ctrl_params(supreme::Motorhandler* ux, uint8_t id, float* par, uint8_t N) {
+        SAFE_EXEC(ux, ux->set_pos_ctrl_params(id, par, N))
     }
 
-    int sensorimotor_set_voltage_limit(supreme::Motorhandler* sensorimotor, float* lim, uint8_t N) {
-        SAFE_EXEC(sensorimotor, sensorimotor->set_voltage_limit(lim, N))
+    int sensorimotor_set_voltage_limit(supreme::Motorhandler* ux, float* lim, uint8_t N) {
+        SAFE_EXEC(ux, ux->set_voltage_limit(lim, N))
     }
 
-    int sensorimotor_apply_impulse(supreme::Motorhandler* sensorimotor, float* val, float* dur, uint8_t N) {
-        SAFE_EXEC(sensorimotor, sensorimotor->apply_impulse(val, dur, N))
+    int sensorimotor_apply_impulse(supreme::Motorhandler* ux, float* val, float* dur, uint8_t N) {
+        SAFE_EXEC(ux, ux->apply_impulse(val, dur, N))
     }
 
-    int sensorimotor_get_motor_data( supreme::Motorhandler* sensorimotor
+    int sensorimotor_get_motor_data( supreme::Motorhandler* ux
                                    , float* pos
                                    , float* vel
                                    , float* cur
                                    , float* vol
                                    , float* tmp
                                    , uint8_t N) {
-        SAFE_EXEC(sensorimotor, sensorimotor->get_motor_data(pos, vel, cur, vol, tmp, N))
+        SAFE_EXEC(ux, ux->get_motor_data(pos, vel, cur, vol, tmp, N))
     }
 
-    int sensorimotor_ping(supreme::Motorhandler* sensorimotor) {
-        if (sensorimotor == nullptr) return -1;
-        return sensorimotor->ping();
+    int sensorimotor_set_raw_data_send(supreme::Motorhandler* ux, uint8_t id, uint8_t* data, uint8_t N) {
+        SAFE_EXEC(ux, ux->set_raw_data_send(id, data, N));
+    }
+
+    int sensorimotor_get_raw_data_recv(supreme::Motorhandler* ux, uint8_t id, uint8_t* data, uint8_t N) {
+        SAFE_EXEC(ux, ux->get_raw_data_recv(id, data, N));
+    }
+
+    int sensorimotor_ping(supreme::Motorhandler* ux) {
+        if (ux == nullptr) return -1;
+        return ux->ping();
     }
 }
 

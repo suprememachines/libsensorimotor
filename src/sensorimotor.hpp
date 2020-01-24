@@ -82,6 +82,7 @@ public:
         position = 2,
         csl      = 3,
         impulse  = 4,
+        send_raw = 5,
     } controller = none;
 
     sensorimotor(uint8_t id, communication_interface& com, float update_rate_Hz)
@@ -95,6 +96,7 @@ public:
 
     /* returns the motors data, such as position, current etc. */
     const interface_data& get_data(void) const { return data; }
+          interface_data& set_data(void)       { return data; }
 
     /* returns the motors_id */
     uint8_t get_id(void) const { return motor_id; }
@@ -229,12 +231,33 @@ private:
         com.enqueue_checksum();
     }
 
+    void enqueue_command_send_raw_data(void) {
+        com.enqueue_sync_bytes(0xFF);
+        com.enqueue_byte(0x55);
+        com.enqueue_byte(motor_id);
+        com.enqueue_byte(data.num_sendbytes);
+        for (uint8_t i = 0; i < data.num_sendbytes; ++i)
+            com.enqueue_byte(data.raw_send[i]);
+        com.enqueue_checksum();
+    }
+
     std::size_t send_motor_command(void) {
         enqueue_command_set_voltage_limit();
-        if (controller != Controller_t::none)
-            enqueue_command_set_voltage(target_voltage);
-        else
+        switch(controller) {
+        case Controller_t::none:
             enqueue_command_data_request();
+            break;
+        case Controller_t::voltage:
+        case Controller_t::csl:
+        case Controller_t::impulse:
+            enqueue_command_set_voltage(target_voltage);
+            break;
+        case Controller_t::send_raw:
+            enqueue_command_send_raw_data();
+            break;
+        default: assert(false); break;
+        }
+
         com.read_msg(); // read all whats left
         return com.send_msg();
     }
@@ -315,7 +338,7 @@ private:
                         if (mid == motor_id) {
                             const uint8_t len = com.get_byte();
                             for (uint8_t i = 0; i < len; ++i)
-                                data.raw[i] = com.get_byte();
+                                data.raw_recv[i] = com.get_byte();
                             com.get_byte(); /* eat checksum */
                         }
                         syncstate = (motor_id == mid and com.is_checksum_ok()) ? completed : invalid;
