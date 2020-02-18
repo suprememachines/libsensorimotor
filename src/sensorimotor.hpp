@@ -248,6 +248,7 @@ private:
             enqueue_command_data_request();
             break;
         case Controller_t::voltage:
+        case Controller_t::position:
         case Controller_t::csl:
         case Controller_t::impulse:
             enqueue_command_set_voltage(target_voltage);
@@ -255,7 +256,7 @@ private:
         case Controller_t::send_raw:
             enqueue_command_send_raw_data();
             break;
-        default: assert(false); break;
+        default: assertion(false, "Unknown controller type %u", controller); break;
         }
 
         com.read_msg(); // read all whats left
