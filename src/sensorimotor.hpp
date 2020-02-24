@@ -43,6 +43,7 @@ class sensorimotor
 
     constexpr static const float voltage_scale = 0.012713472f; /* Vmax = 13V -> 1023 */
     constexpr static const float current_scale = 0.003225806f; /* Imax = 3A3 -> 1023 */
+    constexpr static const float vel_scale = 4.0;
 
     const uint8_t             motor_id;
     communication_interface&  com;
@@ -54,6 +55,7 @@ class sensorimotor
     int16_t                   direction = 1;
     float                     scalefactor = 1.f;
     float                     offset = 0.f;
+    float                     inv_dt;
 
     interface_data            data;
 
@@ -88,11 +90,14 @@ public:
     sensorimotor(uint8_t id, communication_interface& com, float update_rate_Hz)
     : motor_id(id)
     , com(com)
+    , inv_dt(update_rate_Hz/vel_scale)
     , data()
     , pos_ctrl(id, 1.f/update_rate_Hz)
     , csl_ctrl(id)
     , imp_ctrl(id)
-    {}
+    {
+        dbg_msg("Velocity factor: %1.2f", inv_dt);
+    }
 
     /* returns the motors data, such as position, current etc. */
     const interface_data& get_data(void) const { return data; }
@@ -320,7 +325,7 @@ private:
                             data.current         = com.get_word() * current_scale;
                             /**TODO remove*/ com.get_word();
                             //TODO resinsert: data.velocity        = int16_to_sc(com.get_word()) * direction * scalefactor;
-                            /**TODO remove: */ data.velocity = (data.position - data.last_p) * 20.f;
+                            /**TODO remove: */ data.velocity = (data.position - data.last_p) * inv_dt;
                             data.voltage_supply  = com.get_word() * voltage_scale;
                             data.temperature     = static_cast<int16_t>(com.get_word()) / 100.0;
                             /**TODO implement voltage_backemf */

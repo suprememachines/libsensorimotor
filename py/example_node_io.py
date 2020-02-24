@@ -17,7 +17,7 @@ def print_vec(data):
     print(''.join('{0: .3f} '.format(k) for k in data))
 
 def main():
-    cord = Sensorimotor(number_of_motors=1, verbose=False)
+    cord = Sensorimotor(number_of_motors=6, verbose=False, update_rate_Hz = 50)
 
     try:
         # checking for motors
