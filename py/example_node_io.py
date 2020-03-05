@@ -16,8 +16,13 @@ from time import sleep
 def print_vec(data):
     print(''.join('{0: .3f} '.format(k) for k in data))
 
+
+def sawtooth(i):
+    return min(255,abs(i%511 - 255))
+
+
 def main():
-    cord = Sensorimotor(number_of_motors=6, verbose=False, update_rate_Hz = 50)
+    cord = Sensorimotor(number_of_motors=6, verbose=False, update_rate_Hz = 100)
 
     try:
         # checking for motors
@@ -27,16 +32,20 @@ def main():
 
         # starting motorcord
         cord.start()
-        x = cord.get_raw_data_recv(0, 11)
+        i = 0
         while(cord.running()):
             # LOOP BEGIN
 
-            mot = [x[1],x[2],x[3],x[4]]
-            cord.set_raw_data_send(0, mot)
+            f = sawtooth(i)
+
+            mot = [0,0,f] # esc, servopos, light
+            for b in range(cord.number_of_motors):
+                cord.set_raw_data_send(b, mot)
+
             x = cord.get_raw_data_recv(0, 11)
             print(x)
-            sleep(0.01)
-
+            sleep(0.01) # todo replace by framesync
+            i += 1
             # LOOP END
 
 

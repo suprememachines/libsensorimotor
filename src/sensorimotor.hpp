@@ -37,9 +37,9 @@ inline float  int16_to_sc(uint16_t word) { return (int16_t) word / 32768.f; }
 
 class sensorimotor
 {
-    static const unsigned max_response_time_us = 1000;
+    static const unsigned max_response_time_us = 250;
     static const unsigned byte_delay_us = 10;
-    static const unsigned ping_timeout_us = 50;
+    static const unsigned ping_timeout_us = 500;
 
     constexpr static const float voltage_scale = 0.012713472f; /* Vmax = 13V -> 1023 */
     constexpr static const float current_scale = 0.003225806f; /* Imax = 3A3 -> 1023 */
