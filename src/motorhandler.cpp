@@ -48,6 +48,13 @@ public:
         }
     }
 
+    void set_position_id(float pos, uint8_t id)
+    {
+        check_id(id);
+        motors[id].set_controller_type(sensorimotor::Controller_t::position);
+        motors[id].set_target_position(pos);
+    }
+
     void set_pos_ctrl_params(uint8_t id, float* par, uint8_t N)
     {
         check_id(id);
@@ -162,6 +169,10 @@ extern "C" {
 
     int sensorimotor_set_position(supreme::Motorhandler* ux, float* pos, uint8_t N) {
         SAFE_EXEC(ux, ux->set_position(pos, N))
+    }
+
+    int sensorimotor_set_position_id(supreme::Motorhandler* ux, float pos, uint8_t id) {
+        SAFE_EXEC(ux, ux->set_position_id(pos, id))
     }
 
     int sensorimotor_set_pos_ctrl_params(supreme::Motorhandler* ux, uint8_t id, float* par, uint8_t N) {

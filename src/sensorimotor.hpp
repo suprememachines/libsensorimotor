@@ -162,7 +162,10 @@ public:
 
     void set_direction(int16_t dir) { direction = dir; }
     void set_scalefactor(float scf) { scalefactor = scf; }
+
     void set_offset(float o) { offset = o; }
+    void add_offset(float o) { offset += o; }
+    float get_offset(void) const { return offset; }
 
     void set_zero_position(void) { offset -= data.position; }
 

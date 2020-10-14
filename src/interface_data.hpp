@@ -24,10 +24,11 @@ namespace supreme {
     };
 
     struct interface_data {
+        /**TODO include motor_id*/
         float output_voltage  = 0.0;
         float position        = 0.0;
         //TODO remove:
-            float last_p = 0.0;
+            float last_p = 0.0; //TODO rename to last_pos
         float velocity        = 0.0;
         float current         = 0.0;
         float voltage_backemf = 0.0;

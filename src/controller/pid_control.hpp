@@ -13,7 +13,7 @@ namespace supreme {
         and is zero below a certain dead_band.
      */
 
-    float chop(float value, float threshold, float deadband) {
+    inline float chop(float value, float threshold, float deadband) {
         if (std::abs(value) < threshold)
         {
             const float prob = std::abs(value)/threshold;
@@ -42,7 +42,7 @@ class pid_control {
 
 public:
 
-    pid_control(uint8_t id, float timestep) : id(id), dt(timestep) { dbg_msg("creating PID controller with time step: %1.4f", timestep); }
+    pid_control(uint8_t id = 0, float dt = .01/*100Hz*/) : id(id), dt(dt) { dbg_msg("creating PID controller with time step: %1.4f", dt); }
 
     float step(float current_value)
     {
