@@ -42,7 +42,7 @@ class pid_control {
 
 public:
 
-    pid_control(uint8_t id = 0, float dt = .01/*100Hz*/) : id(id), dt(dt) { dbg_msg("creating PID controller with time step: %1.4f", dt); }
+    pid_control(uint8_t id = 0, float dt = .01/*100Hz*/) : id(id), dt(dt) { /*dbg_msg("creating PID controller with time step: %1.4f", dt);*/ }
 
     float step(float current_value)
     {

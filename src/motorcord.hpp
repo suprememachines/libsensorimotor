@@ -58,7 +58,7 @@ public:
         }
 
         if (verbose)
-            printf("%02lu | ", cyclecounter % 100);
+            printf("%02u | ", (unsigned) (cyclecounter % 100));
 
         ++cyclecounter;
 
