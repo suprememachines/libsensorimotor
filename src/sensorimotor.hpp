@@ -340,7 +340,7 @@ private:
                     }
                     return false;
 
-                case 0xC1: /* raw data response */
+                case 0x56: /* raw data response */
                     if (com.size() > 2u && com.size() > com.look_ahead(2) + 3u) { // N raw bytes + (cmd + id + Nbytes + chksum)
                         com.get_byte(); /* eat command byte */
                         const uint8_t mid = com.get_byte();

@@ -62,6 +62,30 @@ public:
         motors[id].set_pos_ctrl_params(par[0], par[1], par[2], par[3], par[4]);
     }
 
+    void set_pos_ctrl_limits(uint8_t id, float* lim, uint8_t N)
+    {
+        check_id(id);
+        assertion(N == 2, "Invalid number of limit values: %u (expected %u).", N, 2);
+        motors[id].set_disable_position_limits(lim[0], lim[1]);
+    }
+
+    void set_voltage(float* data, uint8_t N)
+    {
+        check_size(N);
+        for (uint8_t i = 0; i < N; ++i)
+        {
+            motors[i].set_controller_type(sensorimotor::Controller_t::voltage);
+            motors[i].set_target_voltage(data[i]);
+        }
+    }
+
+    void set_voltage_id(float vol, uint8_t id)
+    {
+        check_id(id);
+        motors[id].set_controller_type(sensorimotor::Controller_t::voltage);
+        motors[id].set_target_voltage(vol);
+    }
+
     void set_voltage_limit(float* lim, uint8_t N)
     {
         check_size(N);
@@ -105,8 +129,6 @@ public:
     }
 
 
-    /**TODO consider using float instead of byte data. */
-
     void set_raw_data_send(uint8_t id, uint8_t* data, uint8_t N) {
         check_id(id);
         auto& m = motors[id].set_data();
@@ -115,6 +137,7 @@ public:
         m.num_sendbytes = N;
         motors[id].set_controller_type(sensorimotor::Controller_t::send_raw);
     }
+
 
     void get_raw_data_recv(uint8_t id, uint8_t* data, uint8_t N) const {
         check_id(id);
@@ -177,6 +200,18 @@ extern "C" {
 
     int sensorimotor_set_pos_ctrl_params(supreme::Motorhandler* ux, uint8_t id, float* par, uint8_t N) {
         SAFE_EXEC(ux, ux->set_pos_ctrl_params(id, par, N))
+    }
+
+    int sensorimotor_set_pos_ctrl_limits(supreme::Motorhandler* ux, uint8_t id, float* lim, uint8_t N) {
+        SAFE_EXEC(ux, ux->set_pos_ctrl_limits(id, lim, N))
+    }
+
+    int sensorimotor_set_voltage(supreme::Motorhandler* ux, float* vol, uint8_t N) {
+        SAFE_EXEC(ux, ux->set_voltage(vol, N))
+    }
+
+    int sensorimotor_set_voltage_id(supreme::Motorhandler* ux, float vol, uint8_t id) {
+        SAFE_EXEC(ux, ux->set_voltage_id(vol, id))
     }
 
     int sensorimotor_set_voltage_limit(supreme::Motorhandler* ux, float* lim, uint8_t N) {

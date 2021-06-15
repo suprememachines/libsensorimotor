@@ -25,6 +25,8 @@ namespace supreme {
 
     struct interface_data {
         /**TODO include motor_id*/
+        uint8_t id = 0;
+
         float output_voltage  = 0.0;
         float position        = 0.0;
         //TODO remove:
