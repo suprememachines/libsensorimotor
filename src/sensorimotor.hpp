@@ -64,6 +64,8 @@ class sensorimotor
     float                     lim_disable_hi  = +0.90f;
     float                     lim_disable_lo  = -0.90f;
 
+    uint16_t                  target_period_us = 0;
+
     pid_control     pos_ctrl;
     csl_control     csl_ctrl;
     impulse_control imp_ctrl;
@@ -153,12 +155,16 @@ public:
     void set_csl_limits(float lo, float hi) { csl_ctrl.limit_hi = hi; csl_ctrl.limit_lo = lo; }
     void set_target_csl_mode(float m) { csl_ctrl.target_csl_mode = m; }
     void set_target_csl_fb  (float f) { csl_ctrl.target_csl_fb   = f; }
+    void set_target_csl_gain(float g) { csl_ctrl.gi_pos   = g; }
     void set_target_position(float p) { pos_ctrl.set_target_value(p); }
     void set_target_voltage (float v) { target_voltage = clip(v, voltage_limit); }
 
     void set_voltage_limit(float limit) { voltage_limit = clip(limit, 0.f, 1.f); voltage_limit_changed = true; pos_ctrl.set_limit(voltage_limit); }
 
     void apply_impulse(float value, unsigned duration) { imp_ctrl.value = value; imp_ctrl.duration = duration; }
+
+    void set_pwm_frequency  (float f_hz) { target_period_us  = 1000ul*1000.0/f_hz; }
+    uint16_t get_pwm_period (void) const { return target_period_us; }
 
     void set_direction(int16_t dir) { direction = dir; }
     void set_scalefactor(float scf) { scalefactor = scf; }
@@ -218,6 +224,22 @@ private:
         com.enqueue_checksum();
     }
 
+    void enqueue_command_set_voltage_and_period(float voltage, uint16_t period) {
+        data.output_voltage = voltage;
+        voltage *= direction; // correct direction
+        com.enqueue_sync_bytes(0xFF);
+        if (voltage >= 0.0) {
+            com.enqueue_byte(0xD0);
+        } else {
+            com.enqueue_byte(0xD1);
+        }
+        com.enqueue_byte(motor_id);
+        com.enqueue_word(period);
+        uint8_t pwm = static_cast<uint8_t>(round(std::abs(voltage) * 255));
+        com.enqueue_byte(pwm);
+        com.enqueue_checksum();
+    }
+
     void enqueue_command_set_voltage_limit(void) {
         if (not voltage_limit_changed) return;
         if (voltage_limit > 0.5)
@@ -259,7 +281,8 @@ private:
         case Controller_t::position:
         case Controller_t::csl:
         case Controller_t::impulse:
-            enqueue_command_set_voltage(target_voltage);
+            if (0 != target_period_us) enqueue_command_set_voltage_and_period(target_voltage, target_period_us);
+            else enqueue_command_set_voltage(target_voltage);
             break;
         case Controller_t::send_raw:
             enqueue_command_send_raw_data();

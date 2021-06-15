@@ -1,5 +1,5 @@
-""" 
- +----------------------------------+ 
+"""
+ +----------------------------------+
  | Supreme Machines                 |
  | Sensorimotor Library             |
  | Build Script                     |
@@ -16,7 +16,7 @@ src_files = [ 'common/log_messages.cpp'
             , 'motorhandler.cpp' ]
 
 # common flags
-cppflags = ['-O2', '-Wall', '-Wextra']
+cppflags = ['-O2', '-Wall', '-Wextra', '-Wno-psabi']
 
 # c++ only flags
 cxxflags = ['-std=c++11']
