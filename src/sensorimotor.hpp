@@ -41,9 +41,9 @@ class sensorimotor
     static const unsigned byte_delay_us = 10;
     static const unsigned ping_timeout_us = 500;
 
-    constexpr static const float voltage_scale = 0.001;  // in 1.0 mV
-    constexpr static const float current_scale = 0.0001; // in 0.1 mA
-    constexpr static const float temp_scale    = 0.01;   // in 10. mC
+    constexpr static const float unit_V = 0.001f;  /* 1.0 mV */
+    constexpr static const float unit_A = 0.0001f; /* 0.1 mA */
+    constexpr static const float unit_C = 0.01f;   /* 10. mC */
     constexpr static const float vel_scale = 4.0;
 
     const uint8_t             motor_id;
@@ -360,15 +360,13 @@ private:
                         com.get_byte(); /* eat command byte */
                         const uint8_t mid = com.get_byte();
                         if (mid == motor_id) {
-                            /**TODO remove */ data.last_p = data.position;
-                            data.position        = uint16_to_sc(com.get_word()) * direction * scalefactor + offset;
-                            data.current         = com.get_word() * current_scale;
-                            /**TODO remove*/ com.get_word();
-                            //TODO resinsert: data.velocity        = int16_to_sc(com.get_word()) * direction * scalefactor;
-                            /**TODO remove: */ data.velocity = (data.position - data.last_p) * inv_dt;
-                            data.voltage_supply  = com.get_word() * voltage_scale;
-                            data.temperature     = static_cast<int16_t>(com.get_word()) * temp_scale;
-                            /**TODO implement voltage_backemf */
+                            data.position_0     = data.position;
+                            data.position       = uint16_to_sc(com.get_word()) * direction * scalefactor + offset;
+                            data.current        = ((int16_t) com.get_word()) * unit_A;
+                            data.velocity_lpf   = int16_to_sc(com.get_word()) * direction * scalefactor;
+                            data.velocity       = (data.position - data.position_0) * inv_dt;
+                            data.voltage_supply = com.get_word() * unit_V;
+                            data.temperature    = static_cast<int16_t>(com.get_word()) * unit_C;
                             com.get_byte(); /* eat checksum */
                         }
                         syncstate = (motor_id == mid and com.is_checksum_ok()) ? completed : invalid;

@@ -23,20 +23,19 @@ namespace supreme {
 
     };
 
-    struct interface_data {
-        /**TODO include motor_id*/
+    struct interface_data
+    {
         uint8_t id = 0;
 
-        float output_voltage  = 0.0;
-        float position        = 0.0;
-        //TODO remove:
-            float last_p = 0.0; //TODO rename to last_pos
-        float velocity        = 0.0;
-        float current         = 0.0;
-        float voltage_backemf = 0.0;
-        float voltage_supply  = 0.0;
-        float temperature     = 0.0;
-        struct Acceleration { float x,y,z; } acceleration = {0.,0.,0.};
+        float output_voltage  = .0f;
+        float position        = .0f;
+        float position_0      = .0f;
+        float velocity        = .0f;
+        float velocity_lpf    = .0f;
+        float current         = .0f;
+        float voltage_supply  = .0f;
+        float temperature     = .0f;
+        struct Acceleration { float x,y,z; } acceleration = {.0f,.0f,.0f};
         Statistics_t statistics = {};
 
         uint8_t raw_send[256] = {};
