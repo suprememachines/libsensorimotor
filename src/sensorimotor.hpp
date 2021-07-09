@@ -41,8 +41,9 @@ class sensorimotor
     static const unsigned byte_delay_us = 10;
     static const unsigned ping_timeout_us = 500;
 
-    constexpr static const float voltage_scale = 0.012713472f; /* Vmax = 13V -> 1023 */
-    constexpr static const float current_scale = 0.003225806f; /* Imax = 3A3 -> 1023 */
+    constexpr static const float voltage_scale = 0.001;  // in 1.0 mV
+    constexpr static const float current_scale = 0.0001; // in 0.1 mA
+    constexpr static const float temp_scale    = 0.01;   // in 10. mC
     constexpr static const float vel_scale = 4.0;
 
     const uint8_t             motor_id;
@@ -80,14 +81,15 @@ class sensorimotor
 
 public:
 
-    enum Controller_t {
+    enum Controller_t : uint8_t {
         none     = 0,
         voltage  = 1,
         position = 2,
         csl      = 3,
         impulse  = 4,
         send_raw = 5,
-    } controller = none;
+    } controller = none
+    , targetctrl = none;
 
     sensorimotor(uint8_t id, communication_interface& com, float update_rate_Hz)
     : motor_id(id)
@@ -112,7 +114,7 @@ public:
     bool is_active(void) const { return is_responding; }
 
     /* disables the output stage of the motor by sending data requests only */
-    void disable(void) { controller = Controller_t::none; set_target_voltage(0.); }
+    void disable(void) { targetctrl = Controller_t::none; set_target_voltage(0.); }
 
     bool ping(void) {
         is_responding = false;
@@ -142,7 +144,7 @@ public:
     const Statistics_t& get_stats(void) const { return data.statistics; }
     void reset_statistics(void) { data.statistics = Statistics_t(); }
 
-    void set_controller_type(Controller_t type) { controller = type; }
+    void set_controller_type(Controller_t c) { targetctrl = c; }
 
     Controller_t get_controller_type(void) const { return controller; }
 
@@ -181,13 +183,25 @@ public:
 
     void execute_controller(void)
     {
+        /* update and reset if mode changes */
+        if (controller != targetctrl) {
+            csl_ctrl.reset(data.position);
+            pos_ctrl.reset();
+            imp_ctrl.reset();
+            controller = targetctrl;
+        }
 
         if (not in_range(data.position, lim_disable_lo, lim_disable_hi))
             disable();
 
-        if (controller == Controller_t::position) set_target_voltage( pos_ctrl.step(data.position) ); else pos_ctrl.reset();
-        if (controller == Controller_t::csl     ) set_target_voltage( csl_ctrl.step(data.position) ); else csl_ctrl.reset(data.position);
-        if (controller == Controller_t::impulse ) set_target_voltage( imp_ctrl.step()              ); else imp_ctrl.reset();
+        switch (controller) {
+        case Controller_t::position: set_target_voltage( pos_ctrl.step(data.position) ); break;
+        case Controller_t::csl     : set_target_voltage( csl_ctrl.step(data.position) ); break;
+        case Controller_t::impulse : set_target_voltage( imp_ctrl.step()              ); break;
+        case Controller_t::none    : set_target_voltage( 0.f                          ); break;
+        default:
+            assert(false);
+        }
     }
 
 private:
@@ -353,7 +367,7 @@ private:
                             //TODO resinsert: data.velocity        = int16_to_sc(com.get_word()) * direction * scalefactor;
                             /**TODO remove: */ data.velocity = (data.position - data.last_p) * inv_dt;
                             data.voltage_supply  = com.get_word() * voltage_scale;
-                            data.temperature     = static_cast<int16_t>(com.get_word()) / 100.0;
+                            data.temperature     = static_cast<int16_t>(com.get_word()) * temp_scale;
                             /**TODO implement voltage_backemf */
                             com.get_byte(); /* eat checksum */
                         }
