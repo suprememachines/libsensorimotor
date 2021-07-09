@@ -195,8 +195,10 @@ public:
             disable();
 
         switch (controller) {
-        case Controller_t::position: set_target_voltage( pos_ctrl.step(data.position) ); break;
+        case Controller_t::voltage : /* nothing to do */                                 break;
+        case Controller_t::send_raw: /* nothing to do */                                 break;
         case Controller_t::csl     : set_target_voltage( csl_ctrl.step(data.position) ); break;
+        case Controller_t::position: set_target_voltage( pos_ctrl.step(data.position) ); break;
         case Controller_t::impulse : set_target_voltage( imp_ctrl.step()              ); break;
         case Controller_t::none    : set_target_voltage( 0.f                          ); break;
         default:
